@@ -2,6 +2,7 @@ package org.betaiotazeta.autoshiftplanner;
 
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+
 import javax.swing.JOptionPane;
 
 /**
@@ -51,16 +52,16 @@ public class TablePanel extends javax.swing.JPanel {
     private void initComponents() {
 
         addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            @Override
             public void mouseDragged(java.awt.event.MouseEvent evt) {
                 tablePanelMouseDragged(evt);
             }
         });
-        addMouseWheelListener(new java.awt.event.MouseWheelListener() {
-            public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
-                tablePanelMouseWheelMoved(evt);
-            }
-        });
+        
+        addMouseWheelListener(this::tablePanelMouseWheelMoved);
+        
         addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 tablePanelMouseClicked(evt);
             }
@@ -137,7 +138,7 @@ public class TablePanel extends javax.swing.JPanel {
 
             } else if (aspApp.getForbidden_jRadioButton().isSelected()
                     && !worked && !mandatory) {
-                if (forbidden == false) {
+                if (!forbidden) {
                     table.getCell(row, column).setForbidden(true);
                 } else {
                     table.getCell(row, column).setForbidden(false);
@@ -145,7 +146,7 @@ public class TablePanel extends javax.swing.JPanel {
                 repaint();
 
             } else if (aspApp.getMandatory_jRadioButton().isSelected() && !forbidden) {
-                if (mandatory == false) {
+                if (!mandatory) {
                     table.getCell(row, column).setMandatory(true);
                 } else {
                     table.getCell(row, column).setMandatory(false);
@@ -207,7 +208,7 @@ public class TablePanel extends javax.swing.JPanel {
                     // Counting idEmployee starts at 1. Position in arrayList starts at 0. Subtract 1.
                     Employee employee = aspApp.getStaff().get(idEmployee - 1);
 
-                    if (worked == false) {
+                    if (!worked) {
                         table.getCell(row, column).setWorked(true);
                         employee.setHoursWorked(employee.getHoursWorked() + 0.5);
                         aspApp.updateLabelHoursWorked();
@@ -220,7 +221,7 @@ public class TablePanel extends javax.swing.JPanel {
 
                 } else if (aspApp.getForbidden_jRadioButton().isSelected()
                         && !worked && !mandatory) {
-                    if (forbidden == false) {
+                    if (!forbidden) {
                         table.getCell(row, column).setForbidden(true);
                     } else {
                         table.getCell(row, column).setForbidden(false);
@@ -228,7 +229,7 @@ public class TablePanel extends javax.swing.JPanel {
                     repaint();
 
                 } else if (aspApp.getMandatory_jRadioButton().isSelected() && !forbidden) {
-                    if (mandatory == false) {
+                    if (!mandatory) {
                         table.getCell(row, column).setMandatory(true);
                     } else {
                         table.getCell(row, column).setMandatory(false);
@@ -295,7 +296,7 @@ public class TablePanel extends javax.swing.JPanel {
                 // Counting idEmployee starts at 1. Position in arrayList starts at 0. Subtract 1.
                 Employee employee = aspApp.getStaff().get(idEmployee - 1);
 
-                if (worked == true) {
+                if (worked) {
                     if ((rowOrigin == row) && (columnOrigin == column)) {
                         if (valueWheel == z) {
                             columnWheel = columnWheel - z;
@@ -370,7 +371,7 @@ public class TablePanel extends javax.swing.JPanel {
             // Updating, cell FORBIDDEN or not
             } else if (aspApp.getForbidden_jRadioButton().isSelected()
                     && !worked && !mandatory) {
-                if (forbidden == true) {
+                if (forbidden) {
                     if ((rowOrigin == row) && (columnOrigin == column)) {
                         if (valueWheel == z) {
                             columnWheel = columnWheel - z;
@@ -440,7 +441,7 @@ public class TablePanel extends javax.swing.JPanel {
 
             // Updating, cell MANDATORY or not
             } else if (aspApp.getMandatory_jRadioButton().isSelected() && !forbidden) {
-                if (mandatory == true) {
+                if (mandatory) {
                     if ((rowOrigin == row) && (columnOrigin == column)) {
                         if (valueWheel == z) {
                             columnWheel = columnWheel - z;

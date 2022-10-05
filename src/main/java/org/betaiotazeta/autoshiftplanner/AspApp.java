@@ -180,12 +180,8 @@ public class AspApp extends javax.swing.JFrame {
         endTime_jSpinner.setToolTipText("All values are expressed in hour units: e.g. for 8 hours and 30 minutes set 8.5, thanks!");
 
         createNewBusiness_jButton.setText("Initialize");
-        createNewBusiness_jButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                createNewBusiness_jButtonActionPerformed(evt);
-            }
-        });
-
+        createNewBusiness_jButton.addActionListener(this::createNewBusiness_jButtonActionPerformed);
+        
         javax.swing.GroupLayout jPanel10Layout = new javax.swing.GroupLayout(jPanel10);
         jPanel10.setLayout(jPanel10Layout);
         jPanel10Layout.setHorizontalGroup(
@@ -226,11 +222,7 @@ public class AspApp extends javax.swing.JFrame {
         hoursPerWeek_jLabel.setText("Hours per week:");
 
         removeEmployee_jButton.setText("Remove");
-        removeEmployee_jButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                removeEmployee_jButtonActionPerformed(evt);
-            }
-        });
+        removeEmployee_jButton.addActionListener(this::removeEmployee_jButtonActionPerformed);
 
         name_jLabel.setText("Name:");
 
@@ -241,6 +233,7 @@ public class AspApp extends javax.swing.JFrame {
         });
         employees_jList.setVisibleRowCount(1);
         employees_jList.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 employees_jListMouseClicked(evt);
             }
@@ -248,12 +241,8 @@ public class AspApp extends javax.swing.JFrame {
         jScrollPane1.setViewportView(employees_jList);
 
         addEmployee_jButton.setText("Add");
-        addEmployee_jButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                addNewEmployee_jButtonActionPerformed(evt);
-            }
-        });
-
+        addEmployee_jButton.addActionListener(this::addNewEmployee_jButtonActionPerformed);
+        
         hoursPerWeek_jSpinner.setModel(new javax.swing.SpinnerNumberModel(0, 0, 100, 1));
 
         javax.swing.GroupLayout jPanel11Layout = new javax.swing.GroupLayout(jPanel11);
@@ -506,26 +495,14 @@ public class AspApp extends javax.swing.JFrame {
         jPanel23.setBorder(javax.swing.BorderFactory.createTitledBorder("Solver"));
 
         solve_jButton.setText("Solve");
-        solve_jButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                solve_jButtonActionPerformed(evt);
-            }
-        });
+        solve_jButton.addActionListener(this::solve_jButtonActionPerformed);
 
         stop_jButton.setText("Stop");
         stop_jButton.setEnabled(false);
-        stop_jButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                stop_jButtonActionPerformed(evt);
-            }
-        });
+        stop_jButton.addActionListener(this::stop_jButtonActionPerformed);
 
         reset_jButton.setText("Reset");
-        reset_jButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                reset_jButtonActionPerformed(evt);
-            }
-        });
+        reset_jButton.addActionListener(this::reset_jButtonActionPerformed);
 
         score_jLabel.setText("Score");
 
@@ -681,20 +658,14 @@ public class AspApp extends javax.swing.JFrame {
 
         openMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_O, java.awt.event.InputEvent.CTRL_MASK));
         openMenu.setText("Open...");
-        openMenu.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                openMenuActionPerformed(evt);
-            }
-        });
+        openMenu.addActionListener(this::openMenuActionPerformed);
+
         fileMenu.add(openMenu);
 
         saveMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.CTRL_MASK));
         saveMenu.setText("Save As...");
-        saveMenu.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                saveMenuActionPerformed(evt);
-            }
-        });
+        saveMenu.addActionListener(this::saveMenuActionPerformed);
+        
         fileMenu.add(saveMenu);
 
         jMenuBar1.add(fileMenu);
@@ -702,27 +673,16 @@ public class AspApp extends javax.swing.JFrame {
         benchmarkMenu.setText("Benchmark");
 
         solverConfigMenu.setText("Use SolverConfig");
-        solverConfigMenu.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                solverConfigMenuActionPerformed(evt);
-            }
-        });
+        solverConfigMenu.addActionListener(this::solverConfigMenuActionPerformed);
+
         benchmarkMenu.add(solverConfigMenu);
 
         benchmarkConfigMenu.setText("Use BenchmarkConfig");
-        benchmarkConfigMenu.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                benchmarkConfigMenuActionPerformed(evt);
-            }
-        });
+        benchmarkConfigMenu.addActionListener(this::benchmarkConfigMenuActionPerformed);
         benchmarkMenu.add(benchmarkConfigMenu);
 
         benchmarkConfigTemplateMenu.setText("Use BenchmarkConfigTemplate");
-        benchmarkConfigTemplateMenu.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                benchmarkConfigTemplateMenuActionPerformed(evt);
-            }
-        });
+        benchmarkConfigTemplateMenu.addActionListener(this::benchmarkConfigTemplateMenuActionPerformed);
         benchmarkMenu.add(benchmarkConfigTemplateMenu);
 
         jMenuBar1.add(benchmarkMenu);
@@ -730,19 +690,11 @@ public class AspApp extends javax.swing.JFrame {
         helpMenu.setText("Help");
 
         usageMenu.setText("Usage...");
-        usageMenu.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                usageMenuActionPerformed(evt);
-            }
-        });
+        usageMenu.addActionListener(this::usageMenuActionPerformed);
         helpMenu.add(usageMenu);
 
         websiteMenu.setText("Web Site...");
-        websiteMenu.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                websiteMenuActionPerformed(evt);
-            }
-        });
+        websiteMenu.addActionListener(this::websiteMenuActionPerformed);
         helpMenu.add(websiteMenu);
 
         jMenuBar1.add(helpMenu);
