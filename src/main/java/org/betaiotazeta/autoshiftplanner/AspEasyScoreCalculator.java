@@ -1,17 +1,17 @@
 package org.betaiotazeta.autoshiftplanner;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.optaplanner.core.api.score.buildin.hardsoft.HardSoftScore;
-import org.optaplanner.core.impl.score.director.easy.EasyScoreCalculator;
+import org.optaplanner.core.api.score.calculator.EasyScoreCalculator;
 
 /**
  *
  * @author betaiotazeta
  */
-public class AspEasyScoreCalculator implements EasyScoreCalculator<Solution> {
+public class AspEasyScoreCalculator implements EasyScoreCalculator<Solution, HardSoftScore> {
 
     @Override
     public HardSoftScore calculateScore(Solution solution) {
@@ -29,7 +29,7 @@ public class AspEasyScoreCalculator implements EasyScoreCalculator<Solution> {
         Table tableScore = solution.getTableScore();
         int nR = tableScore.getNumberOfRows();
         int nC = tableScore.getnumberOfColumns();
-        ArrayList<Employee> staffScore = solution.getStaffScore();
+        List<Employee> staffScore = solution.getStaffScore();
         List<ShiftAssignment> shiftAssignmentList = solution.getShiftAssignmentList();
         int numberOfEmployees = staffScore.size();
         Employee employee;
@@ -290,7 +290,7 @@ public class AspEasyScoreCalculator implements EasyScoreCalculator<Solution> {
                             flag = true;
                         }
                     }
-                    if (flag == true) {
+                    if (flag) {
                         // 1440: means midnight in minutes
                         int calculatedRest = (1440 - lastWorkedCellMinute) + firstWorkedCellMinute;
                         if (calculatedRest < overnightRest) {
@@ -335,6 +335,6 @@ public class AspEasyScoreCalculator implements EasyScoreCalculator<Solution> {
             }
         }
 
-        return HardSoftScore.valueOf(hardScore, softScore);
+        return HardSoftScore.of(hardScore, softScore);
     }
 }

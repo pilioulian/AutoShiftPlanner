@@ -65,7 +65,7 @@ public class AspApp extends javax.swing.JFrame {
         table.printTime();
         */
         
-        staff = new ArrayList<Employee>();
+        staff = new ArrayList<>();
         staff.add(new Employee("Martha", 40));
         staff.add(new Employee("Amelia", 21));
         staff.add(new Employee("Emily", 21));
@@ -807,7 +807,7 @@ public class AspApp extends javax.swing.JFrame {
 
     private void employees_jListMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_employees_jListMouseClicked
         // Reports the name and weekly hours of the employee from the jList in the jTextField fields
-        String employeeName = (String) employees_jList.getSelectedValue();
+        String employeeName = employees_jList.getSelectedValue();
         for (Employee employee : staff) {
             if (employeeName.equals(employee.getName())) {
                 employeeName_jTextField.setText(employeeName);
@@ -1063,8 +1063,10 @@ public class AspApp extends javax.swing.JFrame {
     private void stop_jButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_stop_jButtonActionPerformed
         // Stops solving
         // The worker's thread sometimes ends up soon after, sometimes it takes a while
-        solver.terminateEarly();        
-        solution = solver.getBestSolution();
+        solver.terminateEarly();                
+        solver.addEventListener(event -> {
+            solution = event.getNewBestSolution();
+        });
 
         timer.stop();
         solve_jButton.setEnabled(true);
@@ -1171,8 +1173,8 @@ public class AspApp extends javax.swing.JFrame {
             return;
         }
 
-        SolverFactory<Solution> solverFactory = SolverFactory.createFromXmlResource("org/betaiotazeta/autoshiftplanner/solver/aspSolverConfig.xml");
-        PlannerBenchmarkFactory benchmarkFactory = PlannerBenchmarkFactory.createFromSolverFactory(solverFactory);
+        PlannerBenchmarkFactory benchmarkFactory = PlannerBenchmarkFactory
+        		.createFromSolverConfigXmlResource("org/betaiotazeta/autoshiftplanner/solver/aspSolverConfig.xml");
         File inputSolutionFile = new File("data/unsolved/asp_7employees_forbidden_mandatory.xml");
         XStreamSolutionFileIO myXStreamSolutionFileIO = new XStreamSolutionFileIO(Solution.class);
         Solution dataset1 = (Solution) myXStreamSolutionFileIO.read(inputSolutionFile);
@@ -1333,7 +1335,7 @@ public class AspApp extends javax.swing.JFrame {
         return business;
     }
 
-    public ArrayList<Employee> getStaff() {
+    public List<Employee> getStaff() {
         return staff;
     }
 
@@ -1756,7 +1758,7 @@ public class AspApp extends javax.swing.JFrame {
     private Table table;
 
     // staff: each employee is an object contained in the ArrayList
-    private ArrayList<Employee> staff;
+    private List<Employee> staff;
 
     // solver: reference to the Optaplanner solver object
     private Solver<Solution> solver;

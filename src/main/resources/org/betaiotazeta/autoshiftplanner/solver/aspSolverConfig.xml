@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<solver>
+<solver xmlns="https://www.optaplanner.org/xsd/solver" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://www.optaplanner.org/xsd/solver https://www.optaplanner.org/xsd/solver/solver.xsd">
+
     <environmentMode>REPRODUCIBLE</environmentMode>
 
     <!-- Domain model configuration -->
-    <scanAnnotatedClasses>
-        <packageInclude>org.betaiotazeta.autoshiftplanner</packageInclude>
-    </scanAnnotatedClasses>
+    <solutionClass>org.betaiotazeta.autoshiftplanner.Solution</solutionClass>
+    <entityClass>org.betaiotazeta.autoshiftplanner.ShiftAssignment</entityClass>
 
     <!-- Score configuration -->
     <scoreDirectorFactory>
@@ -16,12 +17,13 @@
 
     <!-- Optimization algorithms configuration -->
     <termination>
-        <bestScoreLimit>0hard/0soft</bestScoreLimit>
         <secondsSpentLimit>180</secondsSpentLimit>
+        <bestScoreLimit>0hard/0soft</bestScoreLimit>
     </termination>
 
     <!-- constructionHeuristic phase -->
     <constructionHeuristic>
+        <constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
         <cartesianProductMoveSelector>                
                 <changeMoveSelector>
                     <filterClass>org.betaiotazeta.autoshiftplanner.ForbiddenCellSelectionFilter</filterClass>
@@ -31,7 +33,6 @@
                     <valueSelector variableName="shiftDuration"/>
                 </changeMoveSelector>            
         </cartesianProductMoveSelector>
-        <constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
     </constructionHeuristic>
 
     <!-- localSearch phase -->
@@ -50,11 +51,6 @@
             <pillarChangeMoveSelector>
                 <valueSelector variableName="shiftDuration"/>
             </pillarChangeMoveSelector>
-
-            <!--
-            <pillarSwapMoveSelector>
-            </pillarSwapMoveSelector>
-            -->
             
             <cartesianProductMoveSelector>
                 <changeMoveSelector>

@@ -46,8 +46,8 @@ public class SolutionGenerator {
         solution.setTableScore(tableScore);
 
         // employees cloning
-        ArrayList<Employee> staff = aspApp.getStaff();
-        ArrayList<Employee> staffScore = new ArrayList<Employee>(staff.size());
+        List<Employee> staff = aspApp.getStaff();
+        List<Employee> staffScore = new ArrayList<>(staff.size());
         for (Employee employee : staff) {
             Employee employeeScore = employee.clone();
             staffScore.add(employeeScore);
@@ -102,7 +102,7 @@ public class SolutionGenerator {
 
         for (int i = 0; i <= shiftDurationListSize; i++) {
             ShiftDuration shiftDuration = new ShiftDuration();
-            shiftDuration.setId((long) i);
+            shiftDuration.setId(i);
             int durationIndex = i;
             shiftDuration.setDurationIndex(durationIndex);
             int durationInMinutes = (int) ((shiftLenghtMin * 60) + (i * 30)); // *30 in half hours
