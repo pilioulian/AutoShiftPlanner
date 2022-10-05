@@ -1,3 +1,6 @@
 local/
 target/
 nbactions.xml
+.project
+.classpath
+*.prefs

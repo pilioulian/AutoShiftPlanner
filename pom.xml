@@ -12,7 +12,7 @@
                 <groupId>org.optaplanner</groupId>
                 <artifactId>optaplanner-bom</artifactId>
                 <type>pom</type>
-                <version>7.11.0.Final</version>
+                <version>8.28.0.Final</version>
                 <scope>import</scope>
             </dependency>
         </dependencies>
@@ -28,6 +28,10 @@
             <artifactId>optaplanner-benchmark</artifactId>
         </dependency>
         <dependency>
+        	<groupId>org.optaplanner</groupId>
+        	<artifactId>optaplanner-persistence-xstream</artifactId>
+        </dependency>
+        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.2.3</version>
@@ -38,10 +42,12 @@
         <plugins>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>3.4.2</version>
                 <configuration>
                     <archive>
                         <manifest>
+                        	<addClasspath>true</addClasspath>
+                        	<classpathPrefix>lib</classpathPrefix>
                             <mainClass>org.betaiotazeta.autoshiftplanner.AspApp</mainClass>
                         </manifest>
                     </archive>

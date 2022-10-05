@@ -167,7 +167,7 @@ public class SolutionGenerator {
         int shiftListSize = numberOfEmployees * shiftsPerDay * 7;
         List<Shift> shiftList = new ArrayList<>(shiftListSize);
 
-        ArrayList<Employee> staff = solution.getStaffScore();
+        List<Employee> staff = solution.getStaffScore();
         for (Employee employee : staff) {
             for (int i = 0; i < (shiftsPerDay * 7); i++) {
                 Shift shift = new Shift();

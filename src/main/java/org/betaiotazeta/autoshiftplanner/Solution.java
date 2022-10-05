@@ -1,13 +1,14 @@
 package org.betaiotazeta.autoshiftplanner;
 
-import java.util.ArrayList;
 import java.util.List;
+
 import org.optaplanner.core.api.domain.solution.PlanningEntityCollectionProperty;
 import org.optaplanner.core.api.domain.solution.PlanningScore;
 import org.optaplanner.core.api.domain.solution.PlanningSolution;
-import org.optaplanner.core.api.domain.solution.drools.ProblemFactCollectionProperty;
+import org.optaplanner.core.api.domain.solution.ProblemFactCollectionProperty;
 import org.optaplanner.core.api.domain.valuerange.ValueRangeProvider;
 import org.optaplanner.core.api.score.buildin.hardsoft.HardSoftScore;
+
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import com.thoughtworks.xstream.annotations.XStreamOmitField;
 
@@ -28,11 +29,11 @@ public class Solution {
         this.score = score;
     }
 
-    public ArrayList<Employee> getStaffScore() {
+    public List<Employee> getStaffScore() {
         return staffScore;
     }
 
-    public void setStaffScore(ArrayList<Employee> staffScore) {
+    public void setStaffScore(List<Employee> staffScore) {
         this.staffScore = staffScore;
     }
 
@@ -122,7 +123,7 @@ public class Solution {
     }
     
     private HardSoftScore score;
-    private ArrayList<Employee> staffScore;
+    private List<Employee> staffScore;
     private Table tableScore;
     private Business business;
     private Configurator configurator;
