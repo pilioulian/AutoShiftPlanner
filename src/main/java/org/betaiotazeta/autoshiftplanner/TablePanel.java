@@ -125,7 +125,7 @@ public class TablePanel extends javax.swing.JPanel {
                 // Counting idEmployee starts at 1. Position in arrayList starts at 0. Subtract 1.
                 Employee employee = aspApp.getStaff().get(idEmployee - 1);
 
-                if (worked == false) {
+                if (!worked) {
                     table.getCell(row, column).setWorked(true);
                     employee.setHoursWorked(employee.getHoursWorked() + 0.5);
                     aspApp.updateLabelHoursWorked();

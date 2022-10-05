@@ -196,7 +196,7 @@ public class TableGraphic {
                 }
             } else {
                 // working time starts at half an hour and ends at half an hour
-                for (int i = 0; i <= ((nC / 2)) - 1; i++) {
+                for (int i = 0; i <= (nC / 2) - 1; i++) {
                     g2.drawString((int) (sT + 0.5 + i) + "", xLeft + rectangleLength + (i * 2 * rectangleLength), yTop - eH);
                 }
             }
@@ -243,7 +243,7 @@ public class TableGraphic {
     // whose reference is called "table"
     private int nR = 1;
     
-    // nR: number (quantity) of columns that has the object of type Table
+    // nC: number (quantity) of columns that has the object of type Table
     // whose reference is called "table"
     private int nC = 1;
 }

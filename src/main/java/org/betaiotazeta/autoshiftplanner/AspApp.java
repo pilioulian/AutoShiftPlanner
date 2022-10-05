@@ -840,14 +840,7 @@ public class AspApp extends javax.swing.JFrame {
                 aspApp.setSolver(solver);
 
                 // Update the GUI everytime a better solution is found
-                solver.addEventListener(new SolverEventListener<Solution>() {
-                    public void bestSolutionChanged(BestSolutionChangedEvent<Solution> event) {
-                        // if (event.getNewBestSolution().getScore().isSolutionInitialized()) {
-                            // System.out.println("A new best solution event has been fired!");
-                            publish(event.getNewBestSolution());
-                        // }
-                    }
-                });
+                solver.addEventListener(event -> publish(event.getNewBestSolution()));
 
                 // Load a problem
                 solution = new SolutionGenerator(aspApp).createSolution();
@@ -1016,9 +1009,7 @@ public class AspApp extends javax.swing.JFrame {
         // Stops solving
         // The worker's thread sometimes ends up soon after, sometimes it takes a while
         solver.terminateEarly();                
-        solver.addEventListener(event -> {
-            solution = event.getNewBestSolution();
-        });
+        solver.addEventListener(event -> solution = event.getNewBestSolution());
 
         timer.stop();
         solve_jButton.setEnabled(true);
@@ -1160,11 +1151,9 @@ public class AspApp extends javax.swing.JFrame {
 
     private boolean isBenchmarkingAllowed() {   
         // bechmarking should not be available in production
-        // allowBenchmark: used to enable-disable bechmarking
-        boolean allowBenchmark = true;
         // we don't want to allow benchmarking from a jar file
         File checkJar = new File("data"); // folder data is absent in a jar file
-        if (!(allowBenchmark && checkJar.exists())) {
+        if (!checkJar.exists()) {
             String message = "Benchmarking is intended and available for developers only.";
             JOptionPane.showMessageDialog(aspApp, message, "Warning", JOptionPane.WARNING_MESSAGE);
             return false;
@@ -1215,7 +1204,7 @@ public class AspApp extends javax.swing.JFrame {
     /**
      * @param args the command line arguments
      */
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
