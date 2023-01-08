@@ -99,10 +99,10 @@ public class AspEasyScoreCalculator implements EasyScoreCalculator<Solution, Har
                 employee = staffScore.get(i);
                 int halfHoursWorked = (int) (employee.getHoursWorked() * 2);
                 int halfHoursPerWeek = employee.getHoursPerWeek() * 2;
-                hardScore = hardScore - Math.abs(halfHoursPerWeek - halfHoursWorked);
+                hardScore -= Math.abs(halfHoursPerWeek - halfHoursWorked);
             }
         }
-        
+         
         // score so that each employee does not exceed the number of shifts per day
         if (configurator.isShiftsPerDayCheck()) {
             for (int i = 0; i < nR; i++) {
@@ -110,144 +110,93 @@ public class AspEasyScoreCalculator implements EasyScoreCalculator<Solution, Har
                 for (int j = 1; j < nC; j++) {
                     boolean status1 = tableScore.getCell(i, j - 1).isWorked();
                     if ((j == 1) && (status1)) {
-                        k = k + 1;
+                        k++;
                     }
                     boolean status2 = tableScore.getCell(i, j).isWorked();
                     if (status1 != status2) {
-                        k = k + 1;
+                        k++;
                     }
                     if ((j == nC - 1) && (k > shiftsPerDay)) {
-                        hardScore = hardScore - k;
+                        hardScore -= k;
                         k = 0;
                     }
                 }
-            }
+            }         
         }
 
         // score so that every employee has some eventual breaks of the desired break duration
         // k indicates the lenght of the break in half-hour units
         if (configurator.isBreakLenghtCheck()) {
             for (int i = 0; i < nR; i++) {
-                boolean status1 = false;
-                boolean status2 = false;
-                boolean status3 = false;
+                boolean status = false;
                 int k = 0;
                 for (int j = 0; j < nC; j++) {
-                    status1 = tableScore.getCell(i, j).isWorked();
-                    // follows the cycle of hours worked
-                    while (status1) {
-                        status2 = true;
-                        j = j + 1;
-                        if (j < nC) {
-                            status1 = tableScore.getCell(i, j).isWorked();
-                        } else {
-                            status1 = false;
-                            status2 = false;
+                    if (tableScore.getCell(i, j).isWorked()) {
+                        if (k > 0 && k != breakLenght) {
+                            hardScore -= Math.abs(k - breakLenght);
                         }
-                    }
-                    if (status2) {
-                        // follows the pause cycle
-                        // punishment if (s)he resumes work with a different break duration
-                        while (!status1) {
-                            status3 = true;
-                            k = k + 1; // k = half-hours units during the break
-                            j = j + 1;
-                            if (j < nC) {
-                                status1 = tableScore.getCell(i, j).isWorked();
-                            } else {
-                                status1 = true;
-                                status3 = false; // only if (s)he resumes must be checked
-                            }
-                        }
-                    }
-                    if (status3) {
-                        // follows the punishment cycle
-                        if (k != breakLenght) {
-                            hardScore = hardScore - Math.abs(k - breakLenght);
-                        }
+                        status = true;
                         k = 0;
-                        j = j - 1;
-                        status2 = false;
-                        status3 = false;
+                    } else if (status) {
+                        k++;
                     }
                 }
             }
+            
         }
         
         // score for each employee to work the required number of consecutive hours
-        if (configurator.isShiftLenghtCheck()) {
+        if (configurator.isShiftLenghtCheck()) {                 
             for (int i = 0; i < nR; i++) {
                 for (int j = 0; j < nC; j++) {
-                    boolean status = false;
                     int k = 0;
-                    status = tableScore.getCell(i, j).isWorked();
-                    while (status) {
-                        k = k + 1;
-                        j = j + 1;
-                        if (j < nC) {
-                            status = tableScore.getCell(i, j).isWorked();
-                        } else {
-                            status = false;
+                    while (tableScore.getCell(i, j).isWorked()) {
+                        k++;
+                        j++;
+                        if (j >= nC) {
+                            break;
                         }
-                    }                    
+                    }
                     if (k == 0) {
                         // do nothing
+                    } else if (k < shiftLenghtMin) {
+                        hardScore -= Math.abs(k - shiftLenghtMin);
+                    } else if (k > shiftLenghtMax) {
+                        hardScore -= (k - shiftLenghtMax);
                     }
-                    else if (k < shiftLenghtMin) {
-                        hardScore = hardScore - Math.abs(k - shiftLenghtMin);
-                    }                    
-                    else if (k > shiftLenghtMax) {
-                        hardScore = hardScore - (k - shiftLenghtMax);
-                    }                    
-                    k = 0; // here value of k should be zero, ready for next loop
                 }
-            }
+            }      
         }
 
         // score so that there is the required number of employees per period
-        if (configurator.isEmployeesPerPeriodCheck()) {
-            int k = 0;
+        if (configurator.isEmployeesPerPeriodCheck()) {    
             for (int j = 0; j < nC; j++) {
-                int i = 0;
-                int m = 0;
-                while (i < nR) {
-                    while (m < numberOfEmployees) {
-                        if (tableScore.getCell(i + m, j).isWorked()) {
-                            k = k + 1;
-                        }
-                        m = m + 1;
+                int k = 0;
+                for (int i = 0; i < nR; i += numberOfEmployees) {
+                    for (int m = 0; m < numberOfEmployees; m++) {
+                        k += tableScore.getCell(i + m, j).isWorked() ? 1 : 0;
                     }
                     if (k < employeesPerPeriod) {
-                        hardScore = hardScore - Math.abs(k - employeesPerPeriod);
+                        hardScore -= Math.abs(k - employeesPerPeriod);
                     }
                     k = 0;
-                    m = 0;
-                    i = i + numberOfEmployees;
                 }
-            }
-            hardScore = hardScore + solution.getBonus();
+            } 
         }
         
         // score so that each employee does not exceed the expected daily hours
         if (configurator.isHoursPerDayCheck()) {
             int k = 0;
             for (int i = 0; i < nR; i++) {
-                boolean status;
-                if (k > hoursPerDay) {
-                    hardScore = hardScore - (k - hoursPerDay) * 2; // punishment augmented by two
-                }
                 k = 0;
                 for (int j = 0; j < nC; j++) {
-                    status = tableScore.getCell(i, j).isWorked();
-                    if (status) {
-                        k = k + 1;
-                    }
+                    k += tableScore.getCell(i, j).isWorked() ? 1 : 0;
+                }
+                if (k > hoursPerDay) {
+                    hardScore -= (k - hoursPerDay) * 2;
                 }
             }
-            if (k > hoursPerDay) {
-                hardScore = hardScore - (k - hoursPerDay) * 2; // punishment augmented by two
-            }
-            k = 0;
+            
         }
 
         // score for all the mandatory cells to be worked
@@ -256,7 +205,7 @@ public class AspEasyScoreCalculator implements EasyScoreCalculator<Solution, Har
                 for (int j = 0; j < nC; j++) {
                     Cell cell = tableScore.getCell(i, j);
                     if (cell.isMandatory() && !cell.isWorked()) {
-                        hardScore = hardScore - 10;
+                        hardScore -= 10;
                     }
                 }
             }
@@ -269,40 +218,42 @@ public class AspEasyScoreCalculator implements EasyScoreCalculator<Solution, Har
             for (int j = 0; j < nC; j++) {
                 Cell cell = tableScore.getCell(i, j);
                 if (cell.isForbidden() && cell.isWorked()) {
-                    hardScore = hardScore - 10;
-                    // System.out.println("Punishing extra filter");
+                    hardScore -= 10;
                 }
             }
         }
 
         // score for minimum amount of overnight rest
         if (configurator.isOvernightRestCheck()) {
+            // Check the overnight rest for each employee
             for (int indexOfEmployee = 0; indexOfEmployee < numberOfEmployees; indexOfEmployee++) {
                 int firstWorkedCellMinute = 0;
                 int lastWorkedCellMinute = 0;
-                for (int i = indexOfEmployee; i < nR; i = i + numberOfEmployees) {
+                for (int i = indexOfEmployee; i < nR; i += numberOfEmployees) {
                     boolean flag = false;
+                    // Find the first worked cell for this employee on this day
                     for (int j = 0; j < nC; j++) {
                         Cell cell = tableScore.getCell(i, j);
                         if (cell.isWorked()) {
-                            j = nC;
                             firstWorkedCellMinute = cell.getStartingMinuteOfDay();
                             flag = true;
+                            break;
                         }
                     }
                     if (flag) {
-                        // 1440: means midnight in minutes
+                        // Calculate the rest period between the end of the previous shift and the start
+                        // of the current shift
                         int calculatedRest = (1440 - lastWorkedCellMinute) + firstWorkedCellMinute;
                         if (calculatedRest < overnightRest) {
-                            // punishment in "quantity of missing cells" 
-                            hardScore = hardScore - ((overnightRest - calculatedRest) / 30);
+                            // Penalize the score if the rest period is too short
+                            hardScore -= (overnightRest - calculatedRest) / 30;
                         }
-                        for (int j = (nC - 1); j > -1; j--) {
+                        // Find the last worked cell for this employee on this day
+                        for (int j = nC - 1; j >= 0; j--) {
                             Cell cell = tableScore.getCell(i, j);
                             if (cell.isWorked()) {
-                                j = -1;
-                                // +30: adding the duration of the last cell in minutes
                                 lastWorkedCellMinute = cell.getStartingMinuteOfDay() + 30;
+                                break;
                             }
                         }
                     } else {
@@ -314,26 +265,24 @@ public class AspEasyScoreCalculator implements EasyScoreCalculator<Solution, Har
         
         // score so that employees are evenly distributed
         if (configurator.isUniformEmployeesDistributionCheck()) {
-            short numberOfPeriods = tableScore.getCell(nR - 1, nC - 1).getIdPeriod();
-            Map<Short, Byte> periodUsageMap = new HashMap<>(numberOfPeriods);
-            for (short idPeriod = 1; idPeriod <= numberOfPeriods; idPeriod++) {
-                periodUsageMap.put(idPeriod, (byte) 0);
-            }
+            // Keep track of how many employees are working in each period
+            Map<Short, Byte> periodUsageMap = new HashMap<>();
             for (int i = 0; i < nR; i++) {
                 for (int j = 0; j < nC; j++) {
                     if (tableScore.getCell(i, j).isWorked()) {
-                        Short idPeriod = tableScore.getCell(i, j).getIdPeriod();
-                        Byte value = periodUsageMap.get(idPeriod);
-                        value++;
-                        periodUsageMap.put(idPeriod, value);
+                        short period = tableScore.getCell(i, j).getIdPeriod();
+                        periodUsageMap.put(period, (byte) (periodUsageMap.getOrDefault(period, (byte) 0) + 1));
                     }
                 }
             }
-            for (Map.Entry<Short, Byte> usageEntry : periodUsageMap.entrySet()) {
-                Byte value = usageEntry.getValue();
-                softScore = softScore - (value * value);
+
+            // Subtract the square of the number of employees working in each period from
+            // the score
+            for (byte usage : periodUsageMap.values()) {
+                softScore -= usage * usage;
             }
         }
+        
 
         return HardSoftScore.of(hardScore, softScore);
     }
