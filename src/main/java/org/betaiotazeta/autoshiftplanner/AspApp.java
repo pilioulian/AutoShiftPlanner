@@ -36,6 +36,7 @@ import org.optaplanner.benchmark.api.PlannerBenchmark;
 import org.optaplanner.benchmark.api.PlannerBenchmarkFactory;
 import org.optaplanner.core.api.solver.Solver;
 import org.optaplanner.core.api.solver.SolverFactory;
+import org.optaplanner.core.config.solver.SolverConfig;
 import org.optaplanner.core.api.solver.event.BestSolutionChangedEvent;
 import org.optaplanner.core.api.solver.event.SolverEventListener;
 import org.optaplanner.persistence.xstream.impl.domain.solution.XStreamSolutionFileIO;
@@ -882,14 +883,17 @@ public class AspApp extends javax.swing.JFrame {
 
                 // Optaplanner:
                 // Build the Solver
-                SolverFactory<Solution> solverFactory = SolverFactory.createFromXmlResource(
+                SolverConfig solverConfig = SolverConfig.createFromXmlResource(
                         "org/betaiotazeta/autoshiftplanner/solver/aspSolverConfig.xml");
+                SolverFactory<Solution> solverFactory = SolverFactory.create(solverConfig);
                 Solver<Solution> solver = solverFactory.buildSolver();
                 aspApp.setSolver(solver);
 
                 // Update the GUI everytime a better solution is found
                 solver.addEventListener(new SolverEventListener<Solution>() {
                     public void bestSolutionChanged(BestSolutionChangedEvent<Solution> event) {
+                        // Store the best solution for later retrieval
+                        solution = event.getNewBestSolution();
                         // if (event.getNewBestSolution().getScore().isSolutionInitialized()) {
                             // System.out.println("A new best solution event has been fired!");
                             publish(event.getNewBestSolution());
@@ -911,8 +915,8 @@ public class AspApp extends javax.swing.JFrame {
                 Solution interimSolution = chunks.get(chunks.size() - 1);
                 
                 // Display the result
-                int interimHardScore = interimSolution.getScore().getHardScore();
-                int interimSoftScore = interimSolution.getScore().getSoftScore();
+                int interimHardScore = interimSolution.getScore().hardScore();
+                int interimSoftScore = interimSolution.getScore().softScore();
                 String text = (interimHardScore + " hard, " + interimSoftScore + " soft");
                 score_jLabel.setText(text);
 
@@ -959,8 +963,8 @@ public class AspApp extends javax.swing.JFrame {
                     solution = solvedSolution;
 
                     // Display the result
-                    int solvedHardScore = solvedSolution.getScore().getHardScore();
-                    int solvedSoftScore = solvedSolution.getScore().getSoftScore();
+                    int solvedHardScore = solvedSolution.getScore().hardScore();
+                    int solvedSoftScore = solvedSolution.getScore().softScore();
                     String message = "Solved score: " + solvedHardScore + " hard, " + solvedSoftScore + " soft.";
                     JOptionPane.showMessageDialog(aspApp, message, "Information", JOptionPane.INFORMATION_MESSAGE);
                   
@@ -1064,7 +1068,7 @@ public class AspApp extends javax.swing.JFrame {
         // Stops solving
         // The worker's thread sometimes ends up soon after, sometimes it takes a while
         solver.terminateEarly();        
-        solution = solver.getBestSolution();
+        // solution is already updated by the event listener
 
         timer.stop();
         solve_jButton.setEnabled(true);
@@ -1171,8 +1175,7 @@ public class AspApp extends javax.swing.JFrame {
             return;
         }
 
-        SolverFactory<Solution> solverFactory = SolverFactory.createFromXmlResource("org/betaiotazeta/autoshiftplanner/solver/aspSolverConfig.xml");
-        PlannerBenchmarkFactory benchmarkFactory = PlannerBenchmarkFactory.createFromSolverFactory(solverFactory);
+        PlannerBenchmarkFactory benchmarkFactory = PlannerBenchmarkFactory.createFromSolverConfigXmlResource("org/betaiotazeta/autoshiftplanner/solver/aspSolverConfig.xml");
         File inputSolutionFile = new File("data/unsolved/asp_7employees_forbidden_mandatory.xml");
         XStreamSolutionFileIO myXStreamSolutionFileIO = new XStreamSolutionFileIO(Solution.class);
         Solution dataset1 = (Solution) myXStreamSolutionFileIO.read(inputSolutionFile);

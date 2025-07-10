@@ -5,13 +5,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.optaplanner.core.api.score.buildin.hardsoft.HardSoftScore;
-import org.optaplanner.core.impl.score.director.easy.EasyScoreCalculator;
+import org.optaplanner.core.api.score.calculator.EasyScoreCalculator;
 
 /**
  *
  * @author betaiotazeta
  */
-public class AspEasyScoreCalculator implements EasyScoreCalculator<Solution> {
+public class AspEasyScoreCalculator implements EasyScoreCalculator<Solution, HardSoftScore> {
 
     @Override
     public HardSoftScore calculateScore(Solution solution) {
@@ -335,6 +335,6 @@ public class AspEasyScoreCalculator implements EasyScoreCalculator<Solution> {
             }
         }
 
-        return HardSoftScore.valueOf(hardScore, softScore);
+        return HardSoftScore.of(hardScore, softScore);
     }
 }
