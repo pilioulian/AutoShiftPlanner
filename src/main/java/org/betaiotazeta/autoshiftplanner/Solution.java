@@ -101,6 +101,36 @@ public class Solution {
         this.bonus = bonus;
     }
 
+    /**
+     * Staffable periods derived from {@code tableScore} (those not entirely forbidden), as problem
+     * facts for the employees-per-period constraint. See {@link StaffablePeriod}. No backing field,
+     * so not serialized by XStream.
+     */
+    @ProblemFactCollectionProperty
+    public List<StaffablePeriod> getStaffablePeriods() {
+        List<StaffablePeriod> periods = new ArrayList<>();
+        if (tableScore == null || staffScore == null) {
+            return periods;
+        }
+        int numberOfEmployees = staffScore.size();
+        int columns = tableScore.getnumberOfColumns();
+        int days = tableScore.getNumberOfRows() / numberOfEmployees;
+        for (int day = 0; day < days; day++) {
+            for (int j = 0; j < columns; j++) {
+                int forbiddenCount = 0;
+                for (int e = 0; e < numberOfEmployees; e++) {
+                    if (tableScore.getCell(day * numberOfEmployees + e, j).isForbidden()) {
+                        forbiddenCount++;
+                    }
+                }
+                if (forbiddenCount < numberOfEmployees) {
+                    periods.add(new StaffablePeriod(day, j, day * columns + j));
+                }
+            }
+        }
+        return periods;
+    }
+
     public List<Day> getDayList() {
         return dayList;
     }

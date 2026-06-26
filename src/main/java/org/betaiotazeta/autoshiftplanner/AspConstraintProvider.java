@@ -1,6 +1,7 @@
 package org.betaiotazeta.autoshiftplanner;
 
 import static org.optaplanner.core.api.score.stream.ConstraintCollectors.count;
+import static org.optaplanner.core.api.score.stream.ConstraintCollectors.countDistinct;
 import static org.optaplanner.core.api.score.stream.ConstraintCollectors.max;
 import static org.optaplanner.core.api.score.stream.ConstraintCollectors.min;
 import static org.optaplanner.core.api.score.stream.ConstraintCollectors.sum;
@@ -42,6 +43,9 @@ public class AspConstraintProvider implements ConstraintProvider {
             forbiddenCells(factory),
             mandatoryCells(factory),
             overflow(factory),
+            employeesPerPeriodUnderstaffed(factory),
+            employeesPerPeriodEmpty(factory),
+            uniformDistribution(factory),
         };
     }
 
@@ -203,6 +207,60 @@ public class AspConstraintProvider implements ConstraintProvider {
 
     private static int columns(Business business) {
         return (int) ((business.getEndTime() - business.getStartTime()) * 2);
+    }
+
+    // CONSTRAINTS.md §2.5 — each staffable period needs at least employeesPerPeriod employees
+    // (one-sided). This branch covers periods worked by 1..N-1 distinct employees; the empty (zero)
+    // case is handled by employeesPerPeriodEmpty so under-coverage of unworked periods is not missed.
+    Constraint employeesPerPeriodUnderstaffed(ConstraintFactory factory) {
+        return factory.forEach(ShiftAssignment.class)
+                .join(TimeGrain.class,
+                        Joiners.equal(sa -> sa.getTimeGrain().getDay().getDayOfWeek(),
+                                tg -> tg.getDay().getDayOfWeek()),
+                        Joiners.filtering((sa, tg) -> covers(sa, tg.getStartingGrainOfDay())))
+                .groupBy((sa, tg) -> tg.getGrainIndex(),
+                        countDistinct((sa, tg) -> sa.getShift().getEmployee()))
+                .join(StaffablePeriod.class,
+                        Joiners.equal((grainIndex, count) -> grainIndex, StaffablePeriod::grainIndex))
+                .join(Configurator.class)
+                .filter((grainIndex, count, period, cfg) ->
+                        cfg.isEmployeesPerPeriodCheck() && count < cfg.getEmployeesPerPeriod())
+                .penalize(HardSoftScore.ONE_HARD,
+                        (grainIndex, count, period, cfg) -> cfg.getEmployeesPerPeriod() - count)
+                .asConstraint("Employees per period understaffed");
+    }
+
+    // CONSTRAINTS.md §2.5 — a staffable period with no covering shift counts as 0 employees and is
+    // penalized by the full requirement.
+    Constraint employeesPerPeriodEmpty(ConstraintFactory factory) {
+        return factory.forEach(StaffablePeriod.class)
+                .join(Configurator.class)
+                .filter((period, cfg) -> cfg.isEmployeesPerPeriodCheck())
+                .ifNotExists(ShiftAssignment.class,
+                        Joiners.filtering((period, cfg, sa) -> period.coveredBy(sa)))
+                .penalize(HardSoftScore.ONE_HARD, (period, cfg) -> cfg.getEmployeesPerPeriod())
+                .asConstraint("Employees per period empty");
+    }
+
+    // CONSTRAINTS.md §3.1 — the only soft constraint. Penalize the square of the number of distinct
+    // employees in each worked period, which rewards spreading employees evenly across periods.
+    Constraint uniformDistribution(ConstraintFactory factory) {
+        return factory.forEach(ShiftAssignment.class)
+                .join(TimeGrain.class,
+                        Joiners.equal(sa -> sa.getTimeGrain().getDay().getDayOfWeek(),
+                                tg -> tg.getDay().getDayOfWeek()),
+                        Joiners.filtering((sa, tg) -> covers(sa, tg.getStartingGrainOfDay())))
+                .groupBy((sa, tg) -> tg.getGrainIndex(),
+                        countDistinct((sa, tg) -> sa.getShift().getEmployee()))
+                .join(Configurator.class)
+                .filter((grainIndex, count, cfg) -> cfg.isUniformEmployeesDistributionCheck())
+                .penalize(HardSoftScore.ONE_SOFT, (grainIndex, count, cfg) -> count * count)
+                .asConstraint("Uniform employee distribution");
+    }
+
+    /** True when the shift's grain span includes the given grain-of-day. */
+    private static boolean covers(ShiftAssignment sa, int grainOfDay) {
+        return grainOfDay >= startGrain(sa) && grainOfDay < endGrain(sa);
     }
 
     private static int startMinute(ShiftAssignment sa) {

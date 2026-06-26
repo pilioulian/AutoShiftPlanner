@@ -43,6 +43,16 @@ class AspConstraintProviderTest {
         return sa;
     }
 
+    private static TimeGrain grain(int dayOfWeek, int grainOfDay, int grainIndex) {
+        Day day = new Day();
+        day.setDayOfWeek(dayOfWeek);
+        TimeGrain tg = new TimeGrain();
+        tg.setDay(day);
+        tg.setStartingGrainOfDay(grainOfDay);
+        tg.setGrainIndex(grainIndex);
+        return tg;
+    }
+
     // --- §2.4 shift length ------------------------------------------------------
 
     @Test
@@ -215,6 +225,72 @@ class AspConstraintProviderTest {
         verifier.verifyThat(AspConstraintProvider::overflow)
                 .given(business, assignment(e, 0, 20, 4)) // ends at grain 24, within 28
                 .penalizesBy(0);
+    }
+
+    // --- §2.5 employees per period ----------------------------------------------
+
+    @Test
+    void employeesPerPeriodUnderstaffedPenalizesShortfall() {
+        Configurator cfg = config();
+        cfg.setEmployeesPerPeriodCheck(true);
+        cfg.setEmployeesPerPeriod(2);
+        Employee a = new Employee("A", 40);
+        StaffablePeriod period = new StaffablePeriod(0, 0, 0);
+        // Only one employee covers period (day 0, grain 0); need 2 -> shortfall 1.
+        verifier.verifyThat(AspConstraintProvider::employeesPerPeriodUnderstaffed)
+                .given(cfg, grain(0, 0, 0), period, assignment(a, 0, 0, 1))
+                .penalizesBy(1);
+    }
+
+    @Test
+    void employeesPerPeriodFullyStaffedIsFine() {
+        Configurator cfg = config();
+        cfg.setEmployeesPerPeriodCheck(true);
+        cfg.setEmployeesPerPeriod(2);
+        Employee a = new Employee("A", 40);
+        Employee b = new Employee("B", 40);
+        StaffablePeriod period = new StaffablePeriod(0, 0, 0);
+        verifier.verifyThat(AspConstraintProvider::employeesPerPeriodUnderstaffed)
+                .given(cfg, grain(0, 0, 0), period, assignment(a, 0, 0, 1), assignment(b, 0, 0, 1))
+                .penalizesBy(0);
+    }
+
+    @Test
+    void employeesPerPeriodEmptyPenalizesFullRequirement() {
+        Configurator cfg = config();
+        cfg.setEmployeesPerPeriodCheck(true);
+        cfg.setEmployeesPerPeriod(2);
+        StaffablePeriod period = new StaffablePeriod(0, 0, 0);
+        // No covering shift at all -> 0 employees -> penalty equals the requirement (2).
+        verifier.verifyThat(AspConstraintProvider::employeesPerPeriodEmpty)
+                .given(cfg, period)
+                .penalizesBy(2);
+    }
+
+    @Test
+    void employeesPerPeriodEmptyQuietWhenCovered() {
+        Configurator cfg = config();
+        cfg.setEmployeesPerPeriodCheck(true);
+        cfg.setEmployeesPerPeriod(2);
+        Employee a = new Employee("A", 40);
+        StaffablePeriod period = new StaffablePeriod(0, 0, 0);
+        verifier.verifyThat(AspConstraintProvider::employeesPerPeriodEmpty)
+                .given(cfg, period, assignment(a, 0, 0, 1)) // covered -> empty branch does not fire
+                .penalizesBy(0);
+    }
+
+    // --- §3.1 uniform distribution (soft) ---------------------------------------
+
+    @Test
+    void uniformDistributionPenalizesSquareOfCount() {
+        Configurator cfg = config();
+        cfg.setUniformEmployeesDistributionCheck(true);
+        Employee a = new Employee("A", 40);
+        Employee b = new Employee("B", 40);
+        // Two distinct employees in period (day 0, grain 0) -> soft penalty 2^2 = 4.
+        verifier.verifyThat(AspConstraintProvider::uniformDistribution)
+                .given(cfg, grain(0, 0, 0), assignment(a, 0, 0, 1), assignment(b, 0, 0, 1))
+                .penalizesBy(4);
     }
 
     // --- §2.9 overnight rest ----------------------------------------------------
