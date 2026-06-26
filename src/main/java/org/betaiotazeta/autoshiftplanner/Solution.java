@@ -29,6 +29,7 @@ public class Solution {
         this.score = score;
     }
 
+    @ProblemFactCollectionProperty
     public ArrayList<Employee> getStaffScore() {
         return staffScore;
     }

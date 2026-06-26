@@ -99,9 +99,30 @@ class AspConstraintProviderTest {
         cfg.setHoursPerWeekCheck(true);
         Employee e = new Employee("A", 40); // target 80 grains
         // Two shifts totalling 20 grains -> |80 - 20| = 60.
-        verifier.verifyThat(AspConstraintProvider::hoursPerWeek)
+        verifier.verifyThat(AspConstraintProvider::hoursPerWeekWorked)
                 .given(cfg, assignment(e, 0, 0, 12), assignment(e, 1, 0, 8))
                 .penalizesBy(60);
+    }
+
+    @Test
+    void hoursPerWeekIdleEmployeeOwesFullTarget() {
+        Configurator cfg = config();
+        cfg.setHoursPerWeekCheck(true);
+        Employee e = new Employee("A", 40); // target 80 grains, no shifts assigned
+        verifier.verifyThat(AspConstraintProvider::hoursPerWeekIdle)
+                .given(cfg, e)
+                .penalizesBy(80);
+    }
+
+    @Test
+    void hoursPerWeekIdleQuietWhenEmployeeHasAShift() {
+        Configurator cfg = config();
+        cfg.setHoursPerWeekCheck(true);
+        Employee e = new Employee("A", 40);
+        // Has a shift -> the idle branch must not fire (the worked branch handles the deficit).
+        verifier.verifyThat(AspConstraintProvider::hoursPerWeekIdle)
+                .given(cfg, e, assignment(e, 0, 0, 12))
+                .penalizesBy(0);
     }
 
     // --- §2.6 hours per day -----------------------------------------------------

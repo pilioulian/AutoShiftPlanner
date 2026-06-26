@@ -35,7 +35,8 @@ public class AspConstraintProvider implements ConstraintProvider {
     public Constraint[] defineConstraints(ConstraintFactory factory) {
         return new Constraint[]{
             shiftLength(factory),
-            hoursPerWeek(factory),
+            hoursPerWeekWorked(factory),
+            hoursPerWeekIdle(factory),
             hoursPerDay(factory),
             shiftsPerDay(factory),
             breakLength(factory),
@@ -69,7 +70,9 @@ public class AspConstraintProvider implements ConstraintProvider {
     }
 
     // CONSTRAINTS.md §2.1 — total grains worked per employee must equal hoursPerWeek (two-sided).
-    Constraint hoursPerWeek(ConstraintFactory factory) {
+    // Split so that employees with NO assigned shifts are still penalized their full deficit: they
+    // never appear in a shift-grouped stream, so the legacy "every employee" coverage would be lost.
+    Constraint hoursPerWeekWorked(ConstraintFactory factory) {
         return factory.forEach(ShiftAssignment.class)
                 .groupBy(sa -> sa.getShift().getEmployee(),
                         sum(sa -> sa.getShiftDuration().getDurationInGrains()))
@@ -78,7 +81,19 @@ public class AspConstraintProvider implements ConstraintProvider {
                 .penalize(HardSoftScore.ONE_HARD,
                         (employee, workedGrains, cfg) ->
                                 Math.abs(employee.getHoursPerWeek() * 2 - workedGrains))
-                .asConstraint("Hours per week");
+                .asConstraint("Hours per week (worked)");
+    }
+
+    // An employee with no assigned shift owes the full weekly amount (|target - 0|).
+    Constraint hoursPerWeekIdle(ConstraintFactory factory) {
+        return factory.forEach(Employee.class)
+                .join(Configurator.class)
+                .filter((employee, cfg) -> cfg.isHoursPerWeekCheck())
+                .ifNotExists(ShiftAssignment.class,
+                        Joiners.equal((employee, cfg) -> employee, sa -> sa.getShift().getEmployee()))
+                .penalize(HardSoftScore.ONE_HARD,
+                        (employee, cfg) -> employee.getHoursPerWeek() * 2)
+                .asConstraint("Hours per week (no shifts)");
     }
 
     // CONSTRAINTS.md §2.6 — grains worked per (employee, day) must not exceed hoursPerDay; the
