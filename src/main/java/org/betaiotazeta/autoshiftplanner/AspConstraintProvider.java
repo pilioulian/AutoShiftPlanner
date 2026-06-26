@@ -12,6 +12,7 @@ import org.optaplanner.core.api.score.stream.Constraint;
 import org.optaplanner.core.api.score.stream.ConstraintFactory;
 import org.optaplanner.core.api.score.stream.ConstraintProvider;
 import org.optaplanner.core.api.score.stream.Joiners;
+import org.optaplanner.core.api.score.stream.uni.UniConstraintStream;
 
 /**
  * Constraint Streams re-implementation of {@link AspEasyScoreCalculator}.
@@ -39,6 +40,7 @@ public class AspConstraintProvider implements ConstraintProvider {
             hoursPerWeekIdle(factory),
             hoursPerDay(factory),
             shiftsPerDay(factory),
+            noOverlap(factory),
             breakLength(factory),
             overnightRest(factory),
             forbiddenCells(factory),
@@ -53,7 +55,7 @@ public class AspConstraintProvider implements ConstraintProvider {
     // CONSTRAINTS.md §2.4 — each shift's duration must lie within [min, max] grains; penalty is the
     // distance outside the band (two-sided). Per shift (not per merged run).
     Constraint shiftLength(ConstraintFactory factory) {
-        return factory.forEach(ShiftAssignment.class)
+        return assignedShifts(factory)
                 .join(Configurator.class)
                 .filter((sa, cfg) -> cfg.isShiftLenghtCheck())
                 .filter((sa, cfg) -> {
@@ -73,7 +75,7 @@ public class AspConstraintProvider implements ConstraintProvider {
     // Split so that employees with NO assigned shifts are still penalized their full deficit: they
     // never appear in a shift-grouped stream, so the legacy "every employee" coverage would be lost.
     Constraint hoursPerWeekWorked(ConstraintFactory factory) {
-        return factory.forEach(ShiftAssignment.class)
+        return assignedShifts(factory)
                 .groupBy(sa -> sa.getShift().getEmployee(),
                         sum(sa -> sa.getShiftDuration().getDurationInGrains()))
                 .join(Configurator.class)
@@ -99,7 +101,7 @@ public class AspConstraintProvider implements ConstraintProvider {
     // CONSTRAINTS.md §2.6 — grains worked per (employee, day) must not exceed hoursPerDay; the
     // overage is penalized double (one-sided).
     Constraint hoursPerDay(ConstraintFactory factory) {
-        return factory.forEach(ShiftAssignment.class)
+        return assignedShifts(factory)
                 .groupBy(sa -> sa.getShift().getEmployee(),
                         sa -> sa.getTimeGrain().getDay().getDayOfWeek(),
                         sum(sa -> sa.getShiftDuration().getDurationInGrains()))
@@ -114,7 +116,7 @@ public class AspConstraintProvider implements ConstraintProvider {
 
     // CONSTRAINTS.md §2.2 — number of shifts per (employee, day) must not exceed shiftsPerDay.
     Constraint shiftsPerDay(ConstraintFactory factory) {
-        return factory.forEach(ShiftAssignment.class)
+        return assignedShifts(factory)
                 .groupBy(sa -> sa.getShift().getEmployee(),
                         sa -> sa.getTimeGrain().getDay().getDayOfWeek(),
                         count())
@@ -126,22 +128,50 @@ public class AspConstraintProvider implements ConstraintProvider {
                 .asConstraint("Shifts per day");
     }
 
+    // Two shifts of the same employee on the same day must not overlap. The legacy calculator counts
+    // each worked cell once (overlaps merge), so an overlapping schedule would over-count hours
+    // per-shift while the legacy calculator sees a deficit; forbidding overlap keeps the per-shift
+    // sum equal to the legacy cell count (and is real-world correct — no double-booking). The penalty
+    // is the number of overlapping grains. See CONSTRAINTS.md §5 (overlap divergence).
+    Constraint noOverlap(ConstraintFactory factory) {
+        return assignedShifts(factory)
+                .join(ShiftAssignment.class,
+                        Joiners.equal(sa -> sa.getShift().getEmployee()),
+                        Joiners.equal(AspConstraintProvider::dayOf),
+                        Joiners.lessThan(ShiftAssignment::getId))
+                .filter((a, b) -> assigned(a) && assigned(b))
+                .filter((a, b) -> overlapGrains(a, b) > 0)
+                .penalize(HardSoftScore.ONE_HARD, (a, b) -> overlapGrains(a, b))
+                .asConstraint("No overlapping shifts");
+    }
+
+    /** Number of grains two shifts share (positive only when they overlap); null-tolerant. */
+    private static int overlapGrains(ShiftAssignment a, ShiftAssignment b) {
+        return Math.min(endGrain(a), endGrain(b)) - Math.max(startGrain(a), startGrain(b));
+    }
+
     // CONSTRAINTS.md §2.3 — the gap between two *consecutive* shifts of the same employee on the
     // same day must equal the configured break length; penalty is the distance from it. A pair (a, b)
     // is consecutive when a starts before b and no third shift of that employee/day starts between
     // them. Only internal gaps (work resumes) are scored, exactly like the legacy run-walk.
     Constraint breakLength(ConstraintFactory factory) {
-        return factory.forEachUniquePair(ShiftAssignment.class,
+        // Self-join ordered by START grain (not by @PlanningId): the solver assigns time grains in
+        // arbitrary order, so pairing must be by start time. The right side comes from the raw entity
+        // set, so the join keys and the result are guarded to fully-assigned shifts.
+        return assignedShifts(factory)
+                .join(ShiftAssignment.class,
                         Joiners.equal(sa -> sa.getShift().getEmployee()),
-                        Joiners.equal(sa -> sa.getTimeGrain().getDay().getDayOfWeek()))
-                .filter((a, b) -> startGrain(a) < startGrain(b))
+                        Joiners.equal(AspConstraintProvider::dayOf),
+                        Joiners.lessThan(AspConstraintProvider::startGrain))
+                .filter((a, b) -> assigned(a) && assigned(b))
                 .ifNotExists(ShiftAssignment.class,
                         Joiners.equal((a, b) -> a.getShift().getEmployee(),
                                 sa -> sa.getShift().getEmployee()),
-                        Joiners.equal((a, b) -> a.getTimeGrain().getDay().getDayOfWeek(),
-                                sa -> sa.getTimeGrain().getDay().getDayOfWeek()),
-                        Joiners.filtering((a, b, c) ->
-                                startGrain(c) > startGrain(a) && startGrain(c) < startGrain(b)))
+                        Joiners.equal((a, b) -> dayOf(a), AspConstraintProvider::dayOf),
+                        // The intermediate shift c comes from the raw entity set (may be partially
+                        // assigned during solving); only a fully-assigned shift counts as "between".
+                        Joiners.filtering((a, b, c) -> assigned(c)
+                                && startGrain(c) > startGrain(a) && startGrain(c) < startGrain(b)))
                 .join(Configurator.class)
                 .filter((a, b, cfg) -> cfg.isBreakLenghtCheck())
                 .filter((a, b, cfg) -> (startGrain(b) - endGrain(a)) != grains(cfg.getBreakLenght()))
@@ -155,13 +185,13 @@ public class AspConstraintProvider implements ConstraintProvider {
     // configured overnight rest; the shortfall is penalized in missing half-hour cells. Mirrors the
     // legacy carry: only two consecutive days that are both worked are compared.
     Constraint overnightRest(ConstraintFactory factory) {
-        var dayEnd = factory.forEach(ShiftAssignment.class)
+        var dayEnd = assignedShifts(factory)
                 .groupBy(sa -> sa.getShift().getEmployee(),
                         sa -> sa.getTimeGrain().getDay().getDayOfWeek(),
                         max(AspConstraintProvider::endMinute, Comparator.naturalOrder()))
                 .map((employee, day, maxEnd) -> new DayBound(employee, day, maxEnd));
 
-        var dayStart = factory.forEach(ShiftAssignment.class)
+        var dayStart = assignedShifts(factory)
                 .groupBy(sa -> sa.getShift().getEmployee(),
                         sa -> sa.getTimeGrain().getDay().getDayOfWeek(),
                         min(AspConstraintProvider::startMinute, Comparator.naturalOrder()))
@@ -213,7 +243,7 @@ public class AspConstraintProvider implements ConstraintProvider {
     // CONSTRAINTS.md §1 (always on) — a shift running past the last grain of the day is penalized one
     // per overrun grain. Column count is derived from the business hours: (endTime - startTime) * 2.
     Constraint overflow(ConstraintFactory factory) {
-        return factory.forEach(ShiftAssignment.class)
+        return assignedShifts(factory)
                 .join(Business.class)
                 .filter((sa, business) -> endGrain(sa) > columns(business))
                 .penalize(HardSoftScore.ONE_HARD, (sa, business) -> endGrain(sa) - columns(business))
@@ -228,7 +258,7 @@ public class AspConstraintProvider implements ConstraintProvider {
     // (one-sided). This branch covers periods worked by 1..N-1 distinct employees; the empty (zero)
     // case is handled by employeesPerPeriodEmpty so under-coverage of unworked periods is not missed.
     Constraint employeesPerPeriodUnderstaffed(ConstraintFactory factory) {
-        return factory.forEach(ShiftAssignment.class)
+        return assignedShifts(factory)
                 .join(TimeGrain.class,
                         Joiners.equal(sa -> sa.getTimeGrain().getDay().getDayOfWeek(),
                                 tg -> tg.getDay().getDayOfWeek()),
@@ -260,7 +290,7 @@ public class AspConstraintProvider implements ConstraintProvider {
     // CONSTRAINTS.md §3.1 — the only soft constraint. Penalize the square of the number of distinct
     // employees in each worked period, which rewards spreading employees evenly across periods.
     Constraint uniformDistribution(ConstraintFactory factory) {
-        return factory.forEach(ShiftAssignment.class)
+        return assignedShifts(factory)
                 .join(TimeGrain.class,
                         Joiners.equal(sa -> sa.getTimeGrain().getDay().getDayOfWeek(),
                                 tg -> tg.getDay().getDayOfWeek()),
@@ -290,16 +320,42 @@ public class AspConstraintProvider implements ConstraintProvider {
     record DayBound(Employee employee, int dayOfWeek, int minute) {
     }
 
+    // startGrain/endGrain are null-tolerant: BAVET evaluates constraint lambdas against in-flux
+    // states during incremental solving (a tuple member can momentarily have a null variable before
+    // the tuple is retracted). Returning a sentinel avoids a crash; such transient tuples are
+    // discarded on the next propagation, so steady-state scores are unaffected.
     private static int startGrain(ShiftAssignment sa) {
-        return sa.getTimeGrain().getStartingGrainOfDay();
+        return sa.getTimeGrain() == null ? Integer.MIN_VALUE : sa.getTimeGrain().getStartingGrainOfDay();
     }
 
     private static int endGrain(ShiftAssignment sa) {
-        return startGrain(sa) + sa.getShiftDuration().getDurationInGrains();
+        return (sa.getTimeGrain() == null || sa.getShiftDuration() == null)
+                ? Integer.MIN_VALUE
+                : sa.getTimeGrain().getStartingGrainOfDay() + sa.getShiftDuration().getDurationInGrains();
     }
 
     /** Convert a configurator value expressed in hours to half-hour grains. */
     private static int grains(double hours) {
         return (int) (hours * 2);
     }
+
+    /** A shift is "assigned" only when both nullable planning variables are set (legacy guard). */
+    private static boolean assigned(ShiftAssignment sa) {
+        return sa.getTimeGrain() != null && sa.getShiftDuration() != null;
+    }
+
+    /**
+     * The base stream of fully-assigned shifts. {@code forEach} already excludes unassigned entities,
+     * but the solver passes through partially-assigned states (one of the two variables still null),
+     * so this explicit guard keeps the shift-consuming constraints null-safe.
+     */
+    private static UniConstraintStream<ShiftAssignment> assignedShifts(ConstraintFactory factory) {
+        return factory.forEach(ShiftAssignment.class).filter(AspConstraintProvider::assigned);
+    }
+
+    /** Day of week of a shift's start, or -1 if its time grain is unset (so it matches no real day). */
+    private static int dayOf(ShiftAssignment sa) {
+        return sa.getTimeGrain() == null ? -1 : sa.getTimeGrain().getDay().getDayOfWeek();
+    }
+
 }

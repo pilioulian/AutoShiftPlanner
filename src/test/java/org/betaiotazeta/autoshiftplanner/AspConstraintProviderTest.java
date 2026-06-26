@@ -141,6 +141,34 @@ class AspConstraintProviderTest {
 
     // --- §2.2 shifts per day ----------------------------------------------------
 
+    // --- no overlapping shifts (always on) --------------------------------------
+
+    @Test
+    void overlappingShiftsPenalizedByOverlapGrains() {
+        Employee e = new Employee("A", 40);
+        // a [0,8), b [4,12) on the same day overlap by 4 grains.
+        verifier.verifyThat(AspConstraintProvider::noOverlap)
+                .given(assignment(e, 0, 0, 8), assignment(e, 0, 4, 8))
+                .penalizesBy(4);
+    }
+
+    @Test
+    void adjacentShiftsDoNotOverlap() {
+        Employee e = new Employee("A", 40);
+        // a [0,4), b [8,12): a gap between them, no overlap.
+        verifier.verifyThat(AspConstraintProvider::noOverlap)
+                .given(assignment(e, 0, 0, 4), assignment(e, 0, 8, 4))
+                .penalizesBy(0);
+    }
+
+    @Test
+    void shiftsOnDifferentDaysDoNotOverlap() {
+        Employee e = new Employee("A", 40);
+        verifier.verifyThat(AspConstraintProvider::noOverlap)
+                .given(assignment(e, 0, 0, 8), assignment(e, 1, 0, 8)) // same grains, different days
+                .penalizesBy(0);
+    }
+
     // --- §2.3 break length ------------------------------------------------------
 
     @Test
@@ -165,6 +193,21 @@ class AspConstraintProviderTest {
         verifier.verifyThat(AspConstraintProvider::breakLength)
                 .given(cfg, assignment(e, 0, 0, 4), assignment(e, 0, 6, 4))
                 .penalizesBy(0);
+    }
+
+    @Test
+    void breakLengthScoresPairsRegardlessOfIdOrder() {
+        Configurator cfg = config();
+        cfg.setBreakLenghtCheck(true);
+        cfg.setBreakLenght(1.0); // 2 grains
+        Employee e = new Employee("A", 40);
+        // The later-starting shift is created first, so it has the SMALLER @PlanningId. Pairing must
+        // be by start time, not id: gap is still 4 grains vs the configured 2 -> |4-2| = 2.
+        ShiftAssignment later = assignment(e, 0, 8, 4);   // id 0, starts at grain 8
+        ShiftAssignment earlier = assignment(e, 0, 0, 4); // id 1, starts at grain 0
+        verifier.verifyThat(AspConstraintProvider::breakLength)
+                .given(cfg, later, earlier)
+                .penalizesBy(2);
     }
 
     @Test

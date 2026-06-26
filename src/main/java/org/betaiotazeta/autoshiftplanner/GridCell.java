@@ -15,6 +15,9 @@ public record GridCell(Employee employee, int dayOfWeek, int grainOfDay, boolean
 
     /** True when a shift for this cell's employee/day with the given grain span covers this cell. */
     boolean coveredBy(ShiftAssignment shift) {
+        if (shift.getTimeGrain() == null || shift.getShiftDuration() == null) {
+            return false; // partially-assigned shift during solving: covers nothing
+        }
         if (shift.getShift().getEmployee() != employee) {
             return false;
         }

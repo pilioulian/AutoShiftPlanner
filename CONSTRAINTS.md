@@ -198,3 +198,27 @@ Behaviors most likely to diverge in a naive per-entity rewrite — each must be 
 These nine items are the acceptance checklist: the differential harness (old calculator == new
 ConstraintProvider across generated solutions) must agree on all of them before the old calculator
 is removed.
+
+## 6. Migration outcome (resolved)
+
+The migration chose **per-shift, feasibility-equivalent** semantics. `AspConstraintProvider` is the
+production scorer (Constraint Streams / BAVET); `AspEasyScoreCalculator` is retained as the test
+oracle. Acceptance = feasibility agreement, validated by `DifferentialScoreTest`: exact match on
+no-merge states (all-null, the solved fixture incl. the quadratic soft term) plus a solve-and-grade
+gate (solve with the provider, grade with the legacy calculator, require `0hard`).
+
+Notes specific to per-shift semantics that the harness surfaced and the provider had to handle:
+- **Idle employees (§2.1).** Shift-grouped streams omit employees with no shifts; a separate
+  `Hours per week (no shifts)` constraint over the `Employee` fact restores legacy "every employee"
+  coverage.
+- **Overlap (risk #1/#2).** Per-shift hours *sum* durations, so overlapping shifts would over-count
+  vs. the legacy cell count. A `No overlapping shifts` hard constraint forbids same-employee overlap,
+  keeping the per-shift sum equal to the legacy cell count (and matching reality — no double-booking).
+  Legacy-feasible schedules are already overlap-free (overlap causes a legacy hours deficit), so this
+  does not change which schedules are feasible.
+- **Null-tolerant lambdas.** BAVET evaluates constraints against in-flux states during incremental
+  solving (a tuple member can momentarily be unassigned). Accessors (`startGrain`, `endGrain`, …)
+  return sentinels for null rather than throwing; such transient tuples are retracted on the next
+  propagation, so steady-state scores are unaffected.
+- **BAVET, not Drools.** The Drools CS engine hits a `groupBy` reaccumulation bug on this model;
+  `aspSolverConfig.xml` sets `constraintStreamImplType = BAVET`.

@@ -14,6 +14,9 @@ public record StaffablePeriod(int dayOfWeek, int grainOfDay, int grainIndex) {
 
     /** True when the given shift (same day, grain span including this period) covers this period. */
     boolean coveredBy(ShiftAssignment shift) {
+        if (shift.getTimeGrain() == null || shift.getShiftDuration() == null) {
+            return false; // partially-assigned shift during solving: covers nothing
+        }
         if (shift.getTimeGrain().getDay().getDayOfWeek() != dayOfWeek) {
             return false;
         }

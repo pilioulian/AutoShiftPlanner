@@ -7,15 +7,9 @@
     <entityClass>org.betaiotazeta.autoshiftplanner.ShiftAssignment</entityClass>
 
     <!-- Score configuration -->
-    <!-- Migrated from AspEasyScoreCalculator to Constraint Streams (per-shift, feasibility-equivalent;
-         see CONSTRAINTS.md). The legacy easy-score config is preserved in aspEasyScoreSolverConfig.xml.
-         The move selectors below are score-director-agnostic and were kept verbatim from the tuned
-         legacy config. -->
     <scoreDirectorFactory>
-        <constraintProviderClass>org.betaiotazeta.autoshiftplanner.AspConstraintProvider</constraintProviderClass>
-        <!-- BAVET (not the legacy Drools engine): Drools CS hits a groupBy reaccumulation bug during
-             incremental solving on this model, and BAVET is the faster, supported implementation. -->
-        <constraintStreamImplType>BAVET</constraintStreamImplType>
+        <easyScoreCalculatorClass>org.betaiotazeta.autoshiftplanner.AspEasyScoreCalculator</easyScoreCalculatorClass>
+        <initializingScoreTrend>ANY</initializingScoreTrend>
     </scoreDirectorFactory>
 
     <!-- Optimization algorithms configuration -->

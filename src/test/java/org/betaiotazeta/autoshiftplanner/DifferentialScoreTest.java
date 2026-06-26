@@ -3,13 +3,14 @@ package org.betaiotazeta.autoshiftplanner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.optaplanner.core.api.score.buildin.hardsoft.HardSoftScore;
 import org.optaplanner.core.api.solver.SolutionManager;
 import org.optaplanner.core.api.solver.SolverFactory;
+import org.optaplanner.core.config.score.director.ScoreDirectorFactoryConfig;
 import org.optaplanner.core.config.solver.SolverConfig;
 import org.optaplanner.core.config.solver.termination.TerminationConfig;
+import org.optaplanner.core.api.score.stream.ConstraintStreamImplType;
 
 /**
  * Feasibility-equivalence harness for the EasyScoreCalculator -> Constraint Streams migration.
@@ -29,7 +30,9 @@ class DifferentialScoreTest {
         SolverConfig config = new SolverConfig()
                 .withSolutionClass(Solution.class)
                 .withEntityClasses(ShiftAssignment.class)
-                .withConstraintProviderClass(AspConstraintProvider.class);
+                .withScoreDirectorFactory(new ScoreDirectorFactoryConfig()
+                        .withConstraintProviderClass(AspConstraintProvider.class)
+                        .withConstraintStreamImplType(ConstraintStreamImplType.BAVET));
         return SolutionManager.create(SolverFactory.create(config));
     }
 
@@ -62,20 +65,16 @@ class DifferentialScoreTest {
     }
 
     @Test
-    @Disabled("Solves from scratch (minutes) and needs a tuned CS solver config — the default move "
-            + "selectors do not reach feasibility on this TimeGrain model. Enable once the CS "
-            + "aspSolverConfig is in place. See task: switch solver config.")
     void constraintStreamsSolutionIsFeasibleUnderLegacyCalculator() {
-        // Strongest gate: solve from scratch with the new provider, then grade with the legacy
-        // calculator. A missing/under-weighted constraint would let the solver produce a schedule the
-        // legacy calculator rejects.
-        SolverConfig config = new SolverConfig()
-                .withSolutionClass(Solution.class)
-                .withEntityClasses(ShiftAssignment.class)
-                .withConstraintProviderClass(AspConstraintProvider.class)
+        // Strongest gate: solve from scratch with the PRODUCTION CS config (constraintProviderClass +
+        // the tuned move selectors), then grade the result with the legacy calculator. A missing or
+        // under-weighted constraint would let the solver produce a schedule the legacy calculator
+        // rejects. Termination is overridden to stop at first hard-feasible solution, with a cap.
+        SolverConfig config = SolverConfig.createFromXmlResource(
+                        "org/betaiotazeta/autoshiftplanner/solver/aspSolverConfig.xml")
                 .withTerminationConfig(new TerminationConfig()
                         .withBestScoreFeasible(true)
-                        .withSpentLimit(Duration.ofMinutes(3)));
+                        .withSpentLimit(Duration.ofMinutes(4)));
 
         Solution unsolved = TestFixtures.load(TestFixtures.UNSOLVED_7EMP);
         Solution solved = SolverFactory.<Solution>create(config).buildSolver().solve(unsolved);
