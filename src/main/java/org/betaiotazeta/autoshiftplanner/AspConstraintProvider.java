@@ -1,12 +1,16 @@
 package org.betaiotazeta.autoshiftplanner;
 
 import static org.optaplanner.core.api.score.stream.ConstraintCollectors.count;
+import static org.optaplanner.core.api.score.stream.ConstraintCollectors.max;
+import static org.optaplanner.core.api.score.stream.ConstraintCollectors.min;
 import static org.optaplanner.core.api.score.stream.ConstraintCollectors.sum;
 
+import java.util.Comparator;
 import org.optaplanner.core.api.score.buildin.hardsoft.HardSoftScore;
 import org.optaplanner.core.api.score.stream.Constraint;
 import org.optaplanner.core.api.score.stream.ConstraintFactory;
 import org.optaplanner.core.api.score.stream.ConstraintProvider;
+import org.optaplanner.core.api.score.stream.Joiners;
 
 /**
  * Constraint Streams re-implementation of {@link AspEasyScoreCalculator}.
@@ -33,6 +37,8 @@ public class AspConstraintProvider implements ConstraintProvider {
             hoursPerWeek(factory),
             hoursPerDay(factory),
             shiftsPerDay(factory),
+            breakLength(factory),
+            overnightRest(factory),
         };
     }
 
@@ -96,6 +102,86 @@ public class AspConstraintProvider implements ConstraintProvider {
                 .penalize(HardSoftScore.ONE_HARD,
                         (employee, day, shiftCount, cfg) -> shiftCount - cfg.getShiftsPerDay())
                 .asConstraint("Shifts per day");
+    }
+
+    // CONSTRAINTS.md §2.3 — the gap between two *consecutive* shifts of the same employee on the
+    // same day must equal the configured break length; penalty is the distance from it. A pair (a, b)
+    // is consecutive when a starts before b and no third shift of that employee/day starts between
+    // them. Only internal gaps (work resumes) are scored, exactly like the legacy run-walk.
+    Constraint breakLength(ConstraintFactory factory) {
+        return factory.forEachUniquePair(ShiftAssignment.class,
+                        Joiners.equal(sa -> sa.getShift().getEmployee()),
+                        Joiners.equal(sa -> sa.getTimeGrain().getDay().getDayOfWeek()))
+                .filter((a, b) -> startGrain(a) < startGrain(b))
+                .ifNotExists(ShiftAssignment.class,
+                        Joiners.equal((a, b) -> a.getShift().getEmployee(),
+                                sa -> sa.getShift().getEmployee()),
+                        Joiners.equal((a, b) -> a.getTimeGrain().getDay().getDayOfWeek(),
+                                sa -> sa.getTimeGrain().getDay().getDayOfWeek()),
+                        Joiners.filtering((a, b, c) ->
+                                startGrain(c) > startGrain(a) && startGrain(c) < startGrain(b)))
+                .join(Configurator.class)
+                .filter((a, b, cfg) -> cfg.isBreakLenghtCheck())
+                .filter((a, b, cfg) -> (startGrain(b) - endGrain(a)) != grains(cfg.getBreakLenght()))
+                .penalize(HardSoftScore.ONE_HARD,
+                        (a, b, cfg) -> Math.abs((startGrain(b) - endGrain(a)) - grains(cfg.getBreakLenght())))
+                .asConstraint("Break length");
+    }
+
+    // CONSTRAINTS.md §2.9 — between an employee's last shift on a day and their first shift on the
+    // next calendar day, the rest (minutes to midnight + minutes after midnight) must be at least the
+    // configured overnight rest; the shortfall is penalized in missing half-hour cells. Mirrors the
+    // legacy carry: only two consecutive days that are both worked are compared.
+    Constraint overnightRest(ConstraintFactory factory) {
+        var dayEnd = factory.forEach(ShiftAssignment.class)
+                .groupBy(sa -> sa.getShift().getEmployee(),
+                        sa -> sa.getTimeGrain().getDay().getDayOfWeek(),
+                        max(AspConstraintProvider::endMinute, Comparator.naturalOrder()))
+                .map((employee, day, maxEnd) -> new DayBound(employee, day, maxEnd));
+
+        var dayStart = factory.forEach(ShiftAssignment.class)
+                .groupBy(sa -> sa.getShift().getEmployee(),
+                        sa -> sa.getTimeGrain().getDay().getDayOfWeek(),
+                        min(AspConstraintProvider::startMinute, Comparator.naturalOrder()))
+                .map((employee, day, minStart) -> new DayBound(employee, day, minStart));
+
+        return dayEnd
+                .join(dayStart,
+                        Joiners.equal(DayBound::employee, DayBound::employee),
+                        Joiners.equal(end -> end.dayOfWeek() + 1, DayBound::dayOfWeek))
+                .join(Configurator.class)
+                .filter((end, start, cfg) -> cfg.isOvernightRestCheck())
+                .filter((end, start, cfg) ->
+                        rest(end, start) < (int) (cfg.getOvernightRest() * 60))
+                .penalize(HardSoftScore.ONE_HARD,
+                        (end, start, cfg) ->
+                                ((int) (cfg.getOvernightRest() * 60) - rest(end, start)) / 30)
+                .asConstraint("Overnight rest");
+    }
+
+    /** Minutes of rest from the end of {@code end}'s day to the start of {@code start}'s next day. */
+    private static int rest(DayBound end, DayBound start) {
+        return (1440 - end.minute()) + start.minute();
+    }
+
+    private static int startMinute(ShiftAssignment sa) {
+        return sa.getTimeGrain().getStartingMinuteOfDay();
+    }
+
+    private static int endMinute(ShiftAssignment sa) {
+        return startMinute(sa) + sa.getShiftDuration().getDurationInMinutes();
+    }
+
+    /** Per-(employee, day) boundary minute — a day's latest end or earliest start, depending on use. */
+    record DayBound(Employee employee, int dayOfWeek, int minute) {
+    }
+
+    private static int startGrain(ShiftAssignment sa) {
+        return sa.getTimeGrain().getStartingGrainOfDay();
+    }
+
+    private static int endGrain(ShiftAssignment sa) {
+        return startGrain(sa) + sa.getShiftDuration().getDurationInGrains();
     }
 
     /** Convert a configurator value expressed in hours to half-hour grains. */

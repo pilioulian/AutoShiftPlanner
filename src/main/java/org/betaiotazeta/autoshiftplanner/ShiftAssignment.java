@@ -1,6 +1,7 @@
 package org.betaiotazeta.autoshiftplanner;
 
 import org.optaplanner.core.api.domain.entity.PlanningEntity;
+import org.optaplanner.core.api.domain.lookup.PlanningId;
 import org.optaplanner.core.api.domain.variable.PlanningVariable;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
@@ -11,6 +12,15 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
 @XStreamAlias("shiftAssignment")
 @PlanningEntity
 public class ShiftAssignment {
+
+    /**
+     * Stable unique id, required by Constraint Streams pair/exists joins. There is a 1:1 mapping
+     * between a ShiftAssignment and its Shift, so the shift's unique index serves as the id.
+     */
+    @PlanningId
+    public int getId() {
+        return shift.getShiftIndex();
+    }
 
     public Shift getShift() {
         return shift;
