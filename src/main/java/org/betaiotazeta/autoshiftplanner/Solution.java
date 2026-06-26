@@ -6,6 +6,7 @@ import org.optaplanner.core.api.domain.solution.PlanningEntityCollectionProperty
 import org.optaplanner.core.api.domain.solution.PlanningScore;
 import org.optaplanner.core.api.domain.solution.PlanningSolution;
 import org.optaplanner.core.api.domain.solution.ProblemFactCollectionProperty;
+import org.optaplanner.core.api.domain.solution.ProblemFactProperty;
 import org.optaplanner.core.api.domain.valuerange.ValueRangeProvider;
 import org.optaplanner.core.api.score.buildin.hardsoft.HardSoftScore;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
@@ -52,6 +53,7 @@ public class Solution {
         this.business = business;
     }
 
+    @ProblemFactProperty
     public Configurator getConfigurator() {
         return configurator;
     }
