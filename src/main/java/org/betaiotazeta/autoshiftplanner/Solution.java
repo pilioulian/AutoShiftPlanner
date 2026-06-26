@@ -45,8 +45,39 @@ public class Solution {
         this.tableScore = tableScore;
     }
 
+    @ProblemFactProperty
     public Business getBusiness() {
         return business;
+    }
+
+    /**
+     * Forbidden and mandatory cells derived from {@code tableScore}, as problem facts for Constraint
+     * Streams (each tagged via {@link GridCell#forbidden()}). Computed from the grid (row {@code i} ->
+     * employee {@code i % numEmp}, day {@code i / numEmp}, column {@code j} -> grain of day). Has no
+     * backing field, so it is not serialized by XStream.
+     */
+    @ProblemFactCollectionProperty
+    public List<GridCell> getGridCells() {
+        List<GridCell> cells = new ArrayList<>();
+        if (tableScore == null || staffScore == null) {
+            return cells;
+        }
+        int numberOfEmployees = staffScore.size();
+        int rows = tableScore.getNumberOfRows();
+        int columns = tableScore.getnumberOfColumns();
+        for (int i = 0; i < rows; i++) {
+            Employee employee = staffScore.get(i % numberOfEmployees);
+            int dayOfWeek = i / numberOfEmployees;
+            for (int j = 0; j < columns; j++) {
+                Cell cell = tableScore.getCell(i, j);
+                if (cell.isForbidden()) {
+                    cells.add(new GridCell(employee, dayOfWeek, j, true));
+                } else if (cell.isMandatory()) {
+                    cells.add(new GridCell(employee, dayOfWeek, j, false));
+                }
+            }
+        }
+        return cells;
     }
 
     public void setBusiness(Business business) {

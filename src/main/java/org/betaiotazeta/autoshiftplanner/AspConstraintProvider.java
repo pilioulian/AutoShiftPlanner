@@ -39,6 +39,9 @@ public class AspConstraintProvider implements ConstraintProvider {
             shiftsPerDay(factory),
             breakLength(factory),
             overnightRest(factory),
+            forbiddenCells(factory),
+            mandatoryCells(factory),
+            overflow(factory),
         };
     }
 
@@ -162,6 +165,44 @@ public class AspConstraintProvider implements ConstraintProvider {
     /** Minutes of rest from the end of {@code end}'s day to the start of {@code start}'s next day. */
     private static int rest(DayBound end, DayBound start) {
         return (1440 - end.minute()) + start.minute();
+    }
+
+    // CONSTRAINTS.md §2.8 (always on) — a shift covering a forbidden cell is penalized 10.
+    Constraint forbiddenCells(ConstraintFactory factory) {
+        return factory.forEach(GridCell.class)
+                .filter(GridCell::forbidden)
+                .join(ShiftAssignment.class,
+                        Joiners.equal(GridCell::employee, sa -> sa.getShift().getEmployee()))
+                .filter((cell, sa) -> cell.coveredBy(sa))
+                .penalize(HardSoftScore.ONE_HARD, (cell, sa) -> 10)
+                .asConstraint("Forbidden cell worked");
+    }
+
+    // CONSTRAINTS.md §2.7 — a mandatory cell not covered by any shift is penalized 10.
+    Constraint mandatoryCells(ConstraintFactory factory) {
+        return factory.forEach(GridCell.class)
+                .filter(cell -> !cell.forbidden())
+                .join(Configurator.class)
+                .filter((cell, cfg) -> cfg.isMandatoryShiftsCheck())
+                .ifNotExists(ShiftAssignment.class,
+                        Joiners.equal((cell, cfg) -> cell.employee(), sa -> sa.getShift().getEmployee()),
+                        Joiners.filtering((cell, cfg, sa) -> cell.coveredBy(sa)))
+                .penalize(HardSoftScore.ONE_HARD, (cell, cfg) -> 10)
+                .asConstraint("Mandatory cell not worked");
+    }
+
+    // CONSTRAINTS.md §1 (always on) — a shift running past the last grain of the day is penalized one
+    // per overrun grain. Column count is derived from the business hours: (endTime - startTime) * 2.
+    Constraint overflow(ConstraintFactory factory) {
+        return factory.forEach(ShiftAssignment.class)
+                .join(Business.class)
+                .filter((sa, business) -> endGrain(sa) > columns(business))
+                .penalize(HardSoftScore.ONE_HARD, (sa, business) -> endGrain(sa) - columns(business))
+                .asConstraint("Shift overflow past day end");
+    }
+
+    private static int columns(Business business) {
+        return (int) ((business.getEndTime() - business.getStartTime()) * 2);
     }
 
     private static int startMinute(ShiftAssignment sa) {

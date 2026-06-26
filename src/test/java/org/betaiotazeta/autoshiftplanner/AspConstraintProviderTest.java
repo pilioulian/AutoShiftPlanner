@@ -149,6 +149,74 @@ class AspConstraintProviderTest {
                 .penalizesBy(0);
     }
 
+    // --- §2.8 forbidden cells (always on) ---------------------------------------
+
+    @Test
+    void forbiddenCellWorkedPenalizes10() {
+        Employee e = new Employee("A", 40);
+        GridCell forbidden = new GridCell(e, 0, 2, true);
+        // Shift [0,4) on day 0 covers grain 2.
+        verifier.verifyThat(AspConstraintProvider::forbiddenCells)
+                .given(forbidden, assignment(e, 0, 0, 4))
+                .penalizesBy(10);
+    }
+
+    @Test
+    void forbiddenCellNotWorkedIsFine() {
+        Employee e = new Employee("A", 40);
+        GridCell forbidden = new GridCell(e, 0, 10, true);
+        // Shift [0,4) does not reach grain 10.
+        verifier.verifyThat(AspConstraintProvider::forbiddenCells)
+                .given(forbidden, assignment(e, 0, 0, 4))
+                .penalizesBy(0);
+    }
+
+    // --- §2.7 mandatory cells ---------------------------------------------------
+
+    @Test
+    void mandatoryCellNotWorkedPenalizes10() {
+        Configurator cfg = config();
+        cfg.setMandatoryShiftsCheck(true);
+        Employee e = new Employee("A", 40);
+        GridCell mandatory = new GridCell(e, 0, 2, false);
+        // No covering shift given -> mandatory cell unworked.
+        verifier.verifyThat(AspConstraintProvider::mandatoryCells)
+                .given(cfg, mandatory)
+                .penalizesBy(10);
+    }
+
+    @Test
+    void mandatoryCellCoveredIsFine() {
+        Configurator cfg = config();
+        cfg.setMandatoryShiftsCheck(true);
+        Employee e = new Employee("A", 40);
+        GridCell mandatory = new GridCell(e, 0, 2, false);
+        verifier.verifyThat(AspConstraintProvider::mandatoryCells)
+                .given(cfg, mandatory, assignment(e, 0, 0, 4)) // shift covers grain 2
+                .penalizesBy(0);
+    }
+
+    // --- §1 overflow (always on) ------------------------------------------------
+
+    @Test
+    void overflowPastDayEndPenalizesPerGrain() {
+        Business business = new Business(8.0, 22.0, 1); // 28 columns
+        Employee e = new Employee("A", 40);
+        // Shift starts at grain 26, lasts 4 -> ends at grain 30, 2 past the 28-column day.
+        verifier.verifyThat(AspConstraintProvider::overflow)
+                .given(business, assignment(e, 0, 26, 4))
+                .penalizesBy(2);
+    }
+
+    @Test
+    void shiftWithinDayDoesNotOverflow() {
+        Business business = new Business(8.0, 22.0, 1); // 28 columns
+        Employee e = new Employee("A", 40);
+        verifier.verifyThat(AspConstraintProvider::overflow)
+                .given(business, assignment(e, 0, 20, 4)) // ends at grain 24, within 28
+                .penalizesBy(0);
+    }
+
     // --- §2.9 overnight rest ----------------------------------------------------
 
     @Test
