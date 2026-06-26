@@ -1,8 +1,10 @@
 # AutoShiftPlanner — Constraint Specification
 
-This document is the precise, behavior-level specification of the scoring logic currently
-implemented in `AspEasyScoreCalculator.calculateScore(Solution)`. It is the reference
-("oracle spec") for the migration to OptaPlanner/Timefold **Constraint Streams**.
+This document is the precise, behavior-level specification of the scoring logic implemented in
+`AspEasyScoreCalculator.calculateScore(Solution)`. It was the reference ("oracle spec") for the
+migration to OptaPlanner **Constraint Streams**, which is now complete — `AspConstraintProvider` is
+the production scorer and `AspEasyScoreCalculator` is retained as the test oracle. The migration
+outcome and the per-shift-vs-legacy reconciliation are recorded in §6.
 
 Two sources were merged:
 - **Intent** (what each rule means to a user): `docs/usage.md`.
@@ -182,8 +184,8 @@ Behaviors most likely to diverge in a naive per-entity rewrite — each must be 
 
 1. **Grid-run vs. per-shift counting (§1 merge).** Breaks (§2.3), shift length (§2.4), and
    shifts-per-day (§2.2) all count *merged contiguous runs*. Adjacent/overlapping shifts merge.
-   Decide explicitly whether Constraint Streams should keep this or switch to per-shift semantics —
-   and document the choice.
+   **Resolved (§6):** Constraint Streams uses per-shift semantics, with a `No overlapping shifts`
+   hard constraint so overlaps can't make the two scorers diverge.
 2. **`hoursWorked` counts overlap once (§1).** Not the sum of durations.
 3. **Overflow truncation + penalty (§1).**
 4. **Asymmetry of penalties:** §2.1/§2.4 two-sided; §2.5 (under only), §2.6 (over only, ×2).
@@ -195,9 +197,11 @@ Behaviors most likely to diverge in a naive per-entity rewrite — each must be 
 9. **Flat −10** magnitudes for mandatory/forbidden vs. distance-based penalties elsewhere — the
    relative weighting between constraints must be preserved for feasibility to mean the same thing.
 
-These nine items are the acceptance checklist: the differential harness (old calculator == new
-ConstraintProvider across generated solutions) must agree on all of them before the old calculator
-is removed.
+These nine items were the acceptance checklist for the migration. They are covered by
+`DifferentialScoreTest` (old calculator == new ConstraintProvider: exact match on no-merge fixtures,
+plus a solve-and-grade gate requiring feasibility agreement) and the per-constraint
+`ConstraintVerifier` cases. The old calculator is **not** removed — it is kept as the test oracle.
+See §6 for how the per-shift gaps surfaced by the gate were closed.
 
 ## 6. Migration outcome (resolved)
 
