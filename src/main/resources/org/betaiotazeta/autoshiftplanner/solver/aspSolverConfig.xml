@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<solver xmlns="https://timefold.ai/xsd/solver" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://timefold.ai/xsd/solver https://timefold.ai/xsd/solver/solver.xsd">    <environmentMode>REPRODUCIBLE</environmentMode>
+<solver xmlns="https://timefold.ai/xsd/solver" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://timefold.ai/xsd/solver https://timefold.ai/xsd/solver/solver.xsd">    <environmentMode>NO_ASSERT</environmentMode>
 
     <!-- Domain model configuration -->
     <solutionClass>org.betaiotazeta.autoshiftplanner.Solution</solutionClass>
@@ -13,9 +13,6 @@
          legacy config. -->
     <scoreDirectorFactory>
         <constraintProviderClass>org.betaiotazeta.autoshiftplanner.AspConstraintProvider</constraintProviderClass>
-        <!-- BAVET (not the legacy Drools engine): Drools CS hits a groupBy reaccumulation bug during
-             incremental solving on this model, and BAVET is the faster, supported implementation. -->
-        <constraintStreamImplType>BAVET</constraintStreamImplType>
     </scoreDirectorFactory>
 
     <!-- Optimization algorithms configuration -->

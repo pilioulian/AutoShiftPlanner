@@ -11,7 +11,7 @@
         </problemBenchmarks>
         <solver>
             <!-- Common solver configuration -->
-            <environmentMode>REPRODUCIBLE</environmentMode>
+            <environmentMode>NO_ASSERT</environmentMode>
 
             <!-- Domain model configuration -->
             <scanAnnotatedClasses>

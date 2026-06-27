@@ -912,8 +912,8 @@ public class AspApp extends javax.swing.JFrame {
                 Solution interimSolution = chunks.get(chunks.size() - 1);
                 
                 // Display the result
-                int interimHardScore = interimSolution.getScore().hardScore();
-                int interimSoftScore = interimSolution.getScore().softScore();
+                long interimHardScore = interimSolution.getScore().hardScore();
+                long interimSoftScore = interimSolution.getScore().softScore();
                 String text = (interimHardScore + " hard, " + interimSoftScore + " soft");
                 score_jLabel.setText(text);
 
@@ -960,8 +960,8 @@ public class AspApp extends javax.swing.JFrame {
                     solution = solvedSolution;
 
                     // Display the result
-                    int solvedHardScore = solvedSolution.getScore().hardScore();
-                    int solvedSoftScore = solvedSolution.getScore().softScore();
+                    long solvedHardScore = solvedSolution.getScore().hardScore();
+                    long solvedSoftScore = solvedSolution.getScore().softScore();
                     String message = "Solved score: " + solvedHardScore + " hard, " + solvedSoftScore + " soft.";
                     JOptionPane.showMessageDialog(aspApp, message, "Information", JOptionPane.INFORMATION_MESSAGE);
                   

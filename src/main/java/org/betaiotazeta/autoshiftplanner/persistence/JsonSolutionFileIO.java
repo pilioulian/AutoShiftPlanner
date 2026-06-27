@@ -3,9 +3,10 @@ package org.betaiotazeta.autoshiftplanner.persistence;
 import ai.timefold.solver.jackson.api.TimefoldJacksonModule;
 import ai.timefold.solver.jackson.impl.domain.solution.JacksonSolutionFileIO;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import org.betaiotazeta.autoshiftplanner.Solution;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * JSON persistence for {@link Solution}. This is the solution file format, replacing the legacy
@@ -35,15 +36,17 @@ public class JsonSolutionFileIO extends JacksonSolutionFileIO<Solution> {
     }
 
     private static ObjectMapper buildObjectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(TimefoldJacksonModule.createModule());
-        mapper.setVisibility(mapper.getVisibilityChecker()
-                .withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-                .withGetterVisibility(JsonAutoDetect.Visibility.NONE)
-                .withIsGetterVisibility(JsonAutoDetect.Visibility.NONE)
-                .withSetterVisibility(JsonAutoDetect.Visibility.NONE)
-                .withCreatorVisibility(JsonAutoDetect.Visibility.NONE));
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-        return mapper;
+        // Jackson 3's ObjectMapper is immutable and configured through the builder (the 1.x-era
+        // mutators registerModule/setVisibility/enable were removed in the move to Jackson 3).
+        return JsonMapper.builder()
+                .addModule(TimefoldJacksonModule.createModule())
+                .changeDefaultVisibility(vc -> vc
+                        .withFieldVisibility(JsonAutoDetect.Visibility.ANY)
+                        .withGetterVisibility(JsonAutoDetect.Visibility.NONE)
+                        .withIsGetterVisibility(JsonAutoDetect.Visibility.NONE)
+                        .withSetterVisibility(JsonAutoDetect.Visibility.NONE)
+                        .withCreatorVisibility(JsonAutoDetect.Visibility.NONE))
+                .enable(SerializationFeature.INDENT_OUTPUT)
+                .build();
     }
 }

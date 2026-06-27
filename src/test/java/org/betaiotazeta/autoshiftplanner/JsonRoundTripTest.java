@@ -3,8 +3,7 @@ package org.betaiotazeta.autoshiftplanner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
-import ai.timefold.solver.core.api.score.stream.ConstraintStreamImplType;
+import ai.timefold.solver.core.api.score.HardSoftScore;
 import ai.timefold.solver.core.api.solver.SolutionManager;
 import ai.timefold.solver.core.api.solver.SolverFactory;
 import ai.timefold.solver.core.config.score.director.ScoreDirectorFactoryConfig;
@@ -37,8 +36,7 @@ class JsonRoundTripTest {
                 .withSolutionClass(Solution.class)
                 .withEntityClasses(ShiftAssignment.class)
                 .withScoreDirectorFactory(new ScoreDirectorFactoryConfig()
-                        .withConstraintProviderClass(AspConstraintProvider.class)
-                        .withConstraintStreamImplType(ConstraintStreamImplType.BAVET));
+                        .withConstraintProviderClass(AspConstraintProvider.class));
         return SolutionManager.<Solution, HardSoftScore>create(SolverFactory.create(config)).update(solution);
     }
 

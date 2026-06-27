@@ -1,7 +1,7 @@
 package org.betaiotazeta.autoshiftplanner;
 
 import org.junit.jupiter.api.Test;
-import ai.timefold.solver.test.api.score.stream.ConstraintVerifier;
+import ai.timefold.solver.core.api.score.stream.test.ConstraintVerifier;
 
 /**
  * Exact per-constraint unit tests for {@link AspConstraintProvider} using OptaPlanner's
@@ -166,6 +166,33 @@ class AspConstraintProviderTest {
         Employee e = new Employee("A", 40);
         verifier.verifyThat(AspConstraintProvider::noOverlap)
                 .given(assignment(e, 0, 0, 8), assignment(e, 1, 0, 8)) // same grains, different days
+                .penalizesBy(0);
+    }
+
+    // --- partial assignment (always on, structural) -----------------------------
+
+    @Test
+    void partialAssignmentPenalizedPerShift() {
+        Employee e = new Employee("A", 40);
+        ShiftAssignment timeGrainOnly = assignment(e, 0, 0, 4);
+        timeGrainOnly.setShiftDuration(null);
+        ShiftAssignment durationOnly = assignment(e, 0, 0, 4);
+        durationOnly.setTimeGrain(null);
+        // Each shift with exactly one variable assigned is penalized once.
+        verifier.verifyThat(AspConstraintProvider::partialAssignment)
+                .given(timeGrainOnly, durationOnly)
+                .penalizesBy(2);
+    }
+
+    @Test
+    void fullyAssignedOrFullyUnassignedNotPenalized() {
+        Employee e = new Employee("A", 40);
+        ShiftAssignment full = assignment(e, 0, 0, 4);
+        ShiftAssignment empty = assignment(e, 0, 0, 4);
+        empty.setTimeGrain(null);
+        empty.setShiftDuration(null);
+        verifier.verifyThat(AspConstraintProvider::partialAssignment)
+                .given(full, empty)
                 .penalizesBy(0);
     }
 

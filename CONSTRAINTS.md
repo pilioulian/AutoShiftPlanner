@@ -170,11 +170,29 @@ increment a usage counter for its `idPeriod`. Then for every period:
 ## 4. Always-on baseline (no flag)
 
 With every `Configurator` flag off, the score still includes:
-- §1 overflow penalty (shifts past grid end), and
-- §2.8 forbidden-cell penalty.
+- §1 overflow penalty (shifts past grid end),
+- §2.8 forbidden-cell penalty, and
+- §4.1 partial-assignment penalty.
 
 This baseline is the reference point for the per-constraint isolation tests: enable one flag, and
 the delta from baseline is attributable to that one constraint.
+
+### 4.1 Partial shift assignment — ALWAYS runs (no flag, structural)
+`ShiftAssignment` has two independently unassignable variables (`allowsUnassigned=true`). A shift
+with **exactly one** of `timeGrain`/`shiftDuration` set is invalid: it models no real shift, yet is
+invisible to every other constraint here (they all require both, via `forEach`, which excludes
+partially-assigned entities). For each such shift: `hardScore -= 1`.
+- Implemented with `forEachIncludingUnassigned` (the only constraint that sees partial entities).
+- **Why it exists:** it is not in the legacy `AspEasyScoreCalculator` (which simply ignores partial
+  shifts). It was added during the Timefold 1.x→2.x migration because 2.0's Local Search exploits
+  the independently-nullable variables — it nulls *one* variable of a shift to cheaply shed a
+  penalty, stranding shifts in partial states that form local-optima traps it cannot escape (the
+  solver plateaued ~3 hard short of feasibility). Penalizing the partial state restores a gradient
+  out of those traps, and the production solve reaches `0hard` again.
+- **Oracle-safe:** it is 0 on any fully-assigned *or* fully-unassigned schedule, so every legacy
+  fixture, characterization golden-master, and exact-match differential case is unchanged, and
+  feasibility-equivalence holds (a CS-feasible solution has only fully-assigned shifts, which the
+  legacy calculator scores identically).
 
 ---
 

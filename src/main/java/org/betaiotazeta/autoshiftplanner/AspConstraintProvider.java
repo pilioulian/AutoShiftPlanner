@@ -6,8 +6,7 @@ import static ai.timefold.solver.core.api.score.stream.ConstraintCollectors.max;
 import static ai.timefold.solver.core.api.score.stream.ConstraintCollectors.min;
 import static ai.timefold.solver.core.api.score.stream.ConstraintCollectors.sum;
 
-import java.util.Comparator;
-import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
+import ai.timefold.solver.core.api.score.HardSoftScore;
 import ai.timefold.solver.core.api.score.stream.Constraint;
 import ai.timefold.solver.core.api.score.stream.ConstraintFactory;
 import ai.timefold.solver.core.api.score.stream.ConstraintProvider;
@@ -41,6 +40,7 @@ public class AspConstraintProvider implements ConstraintProvider {
             hoursPerDay(factory),
             shiftsPerDay(factory),
             noOverlap(factory),
+            partialAssignment(factory),
             breakLength(factory),
             overnightRest(factory),
             forbiddenCells(factory),
@@ -145,6 +145,22 @@ public class AspConstraintProvider implements ConstraintProvider {
                 .asConstraint("No overlapping shifts");
     }
 
+    // Structural (always on) — a shift with exactly one of its two planning variables assigned is
+    // invalid: it represents no real shift, yet is invisible to every per-shift constraint (they all
+    // require both timeGrain and shiftDuration). Because the variables are independently unassignable
+    // (allowsUnassigned), Local Search can null one of them to cheaply shed a penalty, stranding the
+    // shift in a partial state that is a local-optimum trap it cannot escape. Penalizing the partial
+    // state forces the solver to either complete the shift or fully clear it. No legacy fixture or
+    // feasible schedule contains a partial shift, so this is 0 on every oracle/exact-match case and
+    // preserves feasibility-equivalence (a CS-feasible solution still has only fully-assigned shifts,
+    // which the legacy calculator scores identically). See CONSTRAINTS.md §1 (structural).
+    Constraint partialAssignment(ConstraintFactory factory) {
+        return factory.forEachIncludingUnassigned(ShiftAssignment.class)
+                .filter(sa -> (sa.getTimeGrain() == null) != (sa.getShiftDuration() == null))
+                .penalize(HardSoftScore.ONE_HARD)
+                .asConstraint("Partial shift assignment");
+    }
+
     /** Number of grains two shifts share (positive only when they overlap); null-tolerant. */
     private static int overlapGrains(ShiftAssignment a, ShiftAssignment b) {
         return Math.min(endGrain(a), endGrain(b)) - Math.max(startGrain(a), startGrain(b));
@@ -188,13 +204,13 @@ public class AspConstraintProvider implements ConstraintProvider {
         var dayEnd = assignedShifts(factory)
                 .groupBy(sa -> sa.getShift().getEmployee(),
                         sa -> sa.getTimeGrain().getDay().getDayOfWeek(),
-                        max(AspConstraintProvider::endMinute, Comparator.naturalOrder()))
+                        max(AspConstraintProvider::endMinute))
                 .map((employee, day, maxEnd) -> new DayBound(employee, day, maxEnd));
 
         var dayStart = assignedShifts(factory)
                 .groupBy(sa -> sa.getShift().getEmployee(),
                         sa -> sa.getTimeGrain().getDay().getDayOfWeek(),
-                        min(AspConstraintProvider::startMinute, Comparator.naturalOrder()))
+                        min(AspConstraintProvider::startMinute))
                 .map((employee, day, minStart) -> new DayBound(employee, day, minStart));
 
         return dayEnd

@@ -1,17 +1,17 @@
 package org.betaiotazeta.autoshiftplanner;
 
 import ai.timefold.solver.core.impl.heuristic.selector.common.decorator.SelectionFilter;
-import ai.timefold.solver.core.impl.heuristic.selector.move.generic.ChangeMove;
-import ai.timefold.solver.core.api.score.director.ScoreDirector;
+import ai.timefold.solver.core.impl.heuristic.selector.move.generic.SelectorBasedChangeMove;
+import ai.timefold.solver.core.impl.score.director.ScoreDirector;
 
 /**
  *
  * @author betaiotazeta
  */
-public class ForbiddenCellSelectionFilter implements SelectionFilter<Solution, ChangeMove> {
+public class ForbiddenCellSelectionFilter implements SelectionFilter<Solution, SelectorBasedChangeMove<Solution>> {
 
     @Override // short version: only checking the timeGrain
-    public boolean accept(ScoreDirector<Solution> scoreDirector, ChangeMove changeMove) {
+    public boolean accept(ScoreDirector<Solution> scoreDirector, SelectorBasedChangeMove<Solution> changeMove) {
         Object object = changeMove.getToPlanningValue();
         if (object != null) {
             if ("TimeGrain".equals(object.getClass().getSimpleName())) {

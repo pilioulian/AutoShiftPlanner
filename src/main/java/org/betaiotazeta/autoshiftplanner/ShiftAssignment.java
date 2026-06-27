@@ -1,7 +1,7 @@
 package org.betaiotazeta.autoshiftplanner;
 
 import ai.timefold.solver.core.api.domain.entity.PlanningEntity;
-import ai.timefold.solver.core.api.domain.lookup.PlanningId;
+import ai.timefold.solver.core.api.domain.common.PlanningId;
 import ai.timefold.solver.core.api.domain.variable.PlanningVariable;
 
 /**
@@ -28,7 +28,7 @@ public class ShiftAssignment {
         this.shift = shift;
     }
 
-    @PlanningVariable(valueRangeProviderRefs = {"timeGrainRange"}, nullable = true)
+    @PlanningVariable(valueRangeProviderRefs = {"timeGrainRange"}, allowsUnassigned = true)
     public TimeGrain getTimeGrain() {
         return timeGrain;
     }
@@ -37,7 +37,7 @@ public class ShiftAssignment {
         this.timeGrain = timeGrain;
     }
 
-    @PlanningVariable(valueRangeProviderRefs = {"shiftDurationRange"}, nullable = true)
+    @PlanningVariable(valueRangeProviderRefs = {"shiftDurationRange"}, allowsUnassigned = true)
     public ShiftDuration getShiftDuration() {
         return shiftDuration;
     }

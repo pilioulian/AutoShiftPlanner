@@ -4,13 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
-import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
+import ai.timefold.solver.core.api.score.HardSoftScore;
 import ai.timefold.solver.core.api.solver.SolutionManager;
 import ai.timefold.solver.core.api.solver.SolverFactory;
 import ai.timefold.solver.core.config.score.director.ScoreDirectorFactoryConfig;
 import ai.timefold.solver.core.config.solver.SolverConfig;
 import ai.timefold.solver.core.config.solver.termination.TerminationConfig;
-import ai.timefold.solver.core.api.score.stream.ConstraintStreamImplType;
 
 /**
  * Feasibility-equivalence harness for the EasyScoreCalculator -> Constraint Streams migration.
@@ -31,8 +30,7 @@ class DifferentialScoreTest {
                 .withSolutionClass(Solution.class)
                 .withEntityClasses(ShiftAssignment.class)
                 .withScoreDirectorFactory(new ScoreDirectorFactoryConfig()
-                        .withConstraintProviderClass(AspConstraintProvider.class)
-                        .withConstraintStreamImplType(ConstraintStreamImplType.BAVET));
+                        .withConstraintProviderClass(AspConstraintProvider.class));
         return SolutionManager.create(SolverFactory.create(config));
     }
 
