@@ -39,10 +39,7 @@ import ai.timefold.solver.core.api.solver.SolverFactory;
 import ai.timefold.solver.core.config.solver.SolverConfig;
 import ai.timefold.solver.core.api.solver.event.BestSolutionChangedEvent;
 import ai.timefold.solver.core.api.solver.event.SolverEventListener;
-import org.betaiotazeta.autoshiftplanner.persistence.XStreamSolutionFileIO;
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.security.ArrayTypePermission;
-import com.thoughtworks.xstream.security.NoTypePermission;
+import org.betaiotazeta.autoshiftplanner.persistence.JsonSolutionFileIO;
 
 /**
  *
@@ -1088,35 +1085,11 @@ public class AspApp extends javax.swing.JFrame {
             File dataDir = new File("data/unsolved");
             JFileChooser chooser = new JFileChooser(dataDir);
             FileNameExtensionFilter filter = new FileNameExtensionFilter(
-                    "XML Files", "xml");
+                    "JSON Files", "json");
             chooser.setFileFilter(filter);
             if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                 File inputSolutionFile = chooser.getSelectedFile();
-                XStreamSolutionFileIO myXStreamSolutionFileIO = new XStreamSolutionFileIO(Solution.class);
-                // customizing XStream
-                XStream xstream = myXStreamSolutionFileIO.getXStream();
-                // xstream.aliasPackage("package", "org.betaiotazeta.autoshiftplanner");
-                // xstream.processAnnotations(Solution.class);      
-
-                // The inputSolutionFile needs to come from a trusted source:
-                // if it contains malicious data, it can be exploited.
-                // The XStreamSolutionFileIO disables the XStream security framework,
-                // so it just works out of the box.
-                // We use XStreamSolutionFileIO.getXStream() to re-enable the security
-                // framework and explicitly whitelist all marshalled classes.
-                
-                // clear out existing permissions and set own ones
-                xstream.addPermission(NoTypePermission.NONE);
-                // allow some basics
-                // // xstream.addPermission(NullPermission.NULL);
-                // // xstream.addPermission(PrimitiveTypePermission.PRIMITIVES);
-                xstream.addPermission(ArrayTypePermission.ARRAYS);
-                // allow any type from the same package
-                xstream.allowTypesByWildcard(new String[]{
-                    AspApp.class.getPackage().getName() + ".*"
-                });
-
-                solution = (Solution) myXStreamSolutionFileIO.read(inputSolutionFile);
+                solution = new JsonSolutionFileIO().read(inputSolutionFile);
             } else {
                 return;
             }
@@ -1147,26 +1120,17 @@ public class AspApp extends javax.swing.JFrame {
         File dataDir = new File("data/solved");
         JFileChooser chooser = new JFileChooser(dataDir);
         FileNameExtensionFilter filter = new FileNameExtensionFilter(
-        "XML Files", "xml");
+        "JSON Files", "json");
         chooser.setFileFilter(filter);
         if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
             File outputSolutionFile = chooser.getSelectedFile();
             String filePath = outputSolutionFile.getAbsolutePath();
-            if (!filePath.toLowerCase().endsWith(".xml")) {
-                filePath += ".xml";
+            if (!filePath.toLowerCase().endsWith(".json")) {
+                filePath += ".json";
                 outputSolutionFile = new File(filePath);
             }
-            XStreamSolutionFileIO myXStreamSolutionFileIO = new XStreamSolutionFileIO(Solution.class);
-            // XStream xstream = myXStreamSolutionFileIO.getXStream();
-            // xstream.aliasPackage("package", "org.betaiotazeta.autoshiftplanner");
-            // xstream.processAnnotations(Solution.class);
-            myXStreamSolutionFileIO.write(solution, outputSolutionFile);
+            new JsonSolutionFileIO().write(solution, outputSolutionFile);
         }
-
-        /*
-        String xml = xstream.toXML(solution);
-        System.out.println(xml);
-        */
     }//GEN-LAST:event_saveMenuActionPerformed
 
     private void solverConfigMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_solverConfigMenuActionPerformed
@@ -1176,9 +1140,8 @@ public class AspApp extends javax.swing.JFrame {
         }
 
         PlannerBenchmarkFactory benchmarkFactory = PlannerBenchmarkFactory.createFromSolverConfigXmlResource("org/betaiotazeta/autoshiftplanner/solver/aspSolverConfig.xml");
-        File inputSolutionFile = new File("data/unsolved/asp_7employees_forbidden_mandatory.xml");
-        XStreamSolutionFileIO myXStreamSolutionFileIO = new XStreamSolutionFileIO(Solution.class);
-        Solution dataset1 = (Solution) myXStreamSolutionFileIO.read(inputSolutionFile);
+        File inputSolutionFile = new File("data/unsolved/asp_7employees_forbidden_mandatory.json");
+        Solution dataset1 = new JsonSolutionFileIO().read(inputSolutionFile);
         // Solution dataset2 = ...;
         // Solution dataset3 = ...;
         PlannerBenchmark plannerBenchmark = benchmarkFactory.buildPlannerBenchmark(dataset1);

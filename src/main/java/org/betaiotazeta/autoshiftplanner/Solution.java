@@ -9,15 +9,18 @@ import ai.timefold.solver.core.api.domain.solution.ProblemFactCollectionProperty
 import ai.timefold.solver.core.api.domain.solution.ProblemFactProperty;
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider;
 import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
-import com.thoughtworks.xstream.annotations.XStreamAlias;
-import com.thoughtworks.xstream.annotations.XStreamOmitField;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 /**
  *
  * @author betaiotazeta
  */
-@XStreamAlias("solution")
 @PlanningSolution
+// Serialize facts/value-ranges before the entities that reference them, so Jackson's id-references
+// (@JsonIdentityInfo) are always defined before use.
+@JsonPropertyOrder({"business", "configurator", "bonus", "staffScore", "tableScore", "dayList",
+        "timeGrainList", "shiftDurationList", "shiftList", "shiftAssignmentList", "score"})
 public class Solution {
     
     @PlanningScore
@@ -55,7 +58,7 @@ public class Solution {
      * Forbidden and mandatory cells derived from {@code tableScore}, as problem facts for Constraint
      * Streams (each tagged via {@link GridCell#forbidden()}). Computed from the grid (row {@code i} ->
      * employee {@code i % numEmp}, day {@code i / numEmp}, column {@code j} -> grain of day). Has no
-     * backing field, so it is not serialized by XStream.
+     * backing field, so it is not serialized (recomputed from {@code tableScore} on demand).
      */
     @ProblemFactCollectionProperty
     public List<GridCell> getGridCells() {
@@ -105,7 +108,7 @@ public class Solution {
     /**
      * Staffable periods derived from {@code tableScore} (those not entirely forbidden), as problem
      * facts for the employees-per-period constraint. See {@link StaffablePeriod}. No backing field,
-     * so not serialized by XStream.
+     * so not serialized (recomputed from {@code tableScore} on demand).
      */
     @ProblemFactCollectionProperty
     public List<StaffablePeriod> getStaffablePeriods() {
@@ -196,6 +199,6 @@ public class Solution {
     private List<ShiftDuration> shiftDurationList;
     private List<Shift> shiftList;
     private List<ShiftAssignment> shiftAssignmentList;
-    @XStreamOmitField
+    @JsonIgnore
     private AspApp aspApp;
 }

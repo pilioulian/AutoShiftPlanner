@@ -1,14 +1,19 @@
 package org.betaiotazeta.autoshiftplanner;
 
-import com.thoughtworks.xstream.annotations.XStreamAlias;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 /**
  *
  * @author betaiotazeta
  */
-@XStreamAlias("employee")
+@JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "@id")
 public class Employee implements Cloneable {
-    
+
+    /** For Jackson field-based deserialization (see JsonSolutionFileIO). */
+    private Employee() {
+    }
+
     public Employee(String name, int hoursPerWeek) {
         this.name = name;
         this.hoursPerWeek = hoursPerWeek;

@@ -6,7 +6,11 @@ package org.betaiotazeta.autoshiftplanner;
  */
 
 public class Business {
-    
+
+    /** For Jackson field-based deserialization (see JsonSolutionFileIO). */
+    private Business() {
+    }
+
     public Business(double startTime, double endTime, int numberOfEmployees) {
         this.startTime = startTime;
         this.endTime = endTime;

@@ -15,7 +15,11 @@ package org.betaiotazeta.autoshiftplanner;
  * changes made in real time.
  */
 public class Table {
-    
+
+    /** For Jackson field-based deserialization (see JsonSolutionFileIO). */
+    private Table() {
+    }
+
     public Table(int rows, int columns, Business business) {
                
         this.rows = rows;

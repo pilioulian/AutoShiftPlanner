@@ -5,9 +5,9 @@
     <benchmarkDirectory>local/benchmarkReport/</benchmarkDirectory>
     <inheritedSolverBenchmark>
         <problemBenchmarks>
-            <xStreamAnnotatedClass>org.betaiotazeta.autoshiftplanner.Solution</xStreamAnnotatedClass>
-            <inputSolutionFile>data/unsolved/asp_7employees_forbidden_mandatory.xml</inputSolutionFile>
-            <!-- <inputSolutionFile>local/solutionFile/anotherSolutionFile.xml</inputSolutionFile> -->
+            <solutionFileIOClass>org.betaiotazeta.autoshiftplanner.persistence.JsonSolutionFileIO</solutionFileIOClass>
+            <inputSolutionFile>data/unsolved/asp_7employees_forbidden_mandatory.json</inputSolutionFile>
+            <!-- <inputSolutionFile>local/solutionFile/anotherSolutionFile.json</inputSolutionFile> -->
         </problemBenchmarks>
         <solver>
             <!-- Common solver configuration -->

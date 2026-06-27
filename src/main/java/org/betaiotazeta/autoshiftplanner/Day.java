@@ -1,12 +1,13 @@
 package org.betaiotazeta.autoshiftplanner;
 
-import com.thoughtworks.xstream.annotations.XStreamAlias;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 /**
  *
  * @author betaiotazeta
  */
-@XStreamAlias("day")
+@JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "@id")
 public class Day {
 
     public int getDayOfWeek() {

@@ -27,26 +27,17 @@
             <groupId>ai.timefold.solver</groupId>
             <artifactId>timefold-solver-benchmark</artifactId>
         </dependency>
+        <!-- JSON persistence: JacksonSolutionFileIO + Score (de)serializers. This is the solution
+             file format (see JsonSolutionFileIO); it transitively provides the SolutionFileIO API. -->
+        <dependency>
+            <groupId>ai.timefold.solver</groupId>
+            <artifactId>timefold-solver-jackson</artifactId>
+        </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <!-- 1.5.x provides the SLF4J 2.x binding that Timefold pulls; 1.2.3 (SLF4J 1.7) is ignored and disables logging. -->
             <version>1.5.36</version>
-        </dependency>
-        <dependency>
-            <groupId>com.thoughtworks.xstream</groupId>
-            <artifactId>xstream</artifactId>
-            <version>1.4.20</version>
-        </dependency>
-        <!--
-            Timefold dropped the XStream persistence module after 0.8.x. We keep the legacy
-            XStream file format (so existing data/*.xml and user-saved files still load) via an
-            in-project XStreamSolutionFileIO built on the direct xstream dependency above and
-            Timefold's SolutionFileIO interface from timefold-solver-persistence-common.
-        -->
-        <dependency>
-            <groupId>ai.timefold.solver</groupId>
-            <artifactId>timefold-solver-persistence-common</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

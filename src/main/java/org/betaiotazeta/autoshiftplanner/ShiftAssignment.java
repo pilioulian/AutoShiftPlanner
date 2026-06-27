@@ -3,13 +3,11 @@ package org.betaiotazeta.autoshiftplanner;
 import ai.timefold.solver.core.api.domain.entity.PlanningEntity;
 import ai.timefold.solver.core.api.domain.lookup.PlanningId;
 import ai.timefold.solver.core.api.domain.variable.PlanningVariable;
-import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 /**
  *
  * @author betaiotazeta
  */
-@XStreamAlias("shiftAssignment")
 @PlanningEntity
 public class ShiftAssignment {
 
