@@ -13,8 +13,8 @@
   <logger name="org.reflections" level="OFF" />
   
   <!-- To override the debug log level from the command line, use the
-  VM option "-Dlogback.level.org.optaplanner=trace" -->
-  <logger name="org.optaplanner" level="${logback.level.org.optaplanner:-info}"/>
+  VM option "-Dlogback.level.ai.timefold.solver=trace" -->
+  <logger name="ai.timefold.solver" level="${logback.level.ai.timefold.solver:-info}"/>
   
   <!--
   Possible values for level="something" are: off, error, warn, info, debug, trace

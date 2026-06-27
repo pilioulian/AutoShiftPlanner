@@ -11,4 +11,4 @@ Please, refer to the project [webpage](https://betaiotazeta.github.io/AutoShiftP
 
 * * *
 
-The application is a **Maven** project: just clone the repository and open the **pom** file in your preferred IDE. Please consider forking the repository on GitHub, contributions are welcome! The application is also an easy example of **Optaplanner** usage with simple code.
+The application is a **Maven** project: just clone the repository and open the **pom** file in your preferred IDE. Please consider forking the repository on GitHub, contributions are welcome! The application is also an easy example of **Timefold Solver** (the maintained fork of OptaPlanner) usage with simple code.

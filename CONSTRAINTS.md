@@ -2,7 +2,7 @@
 
 This document is the precise, behavior-level specification of the scoring logic implemented in
 `AspEasyScoreCalculator.calculateScore(Solution)`. It was the reference ("oracle spec") for the
-migration to OptaPlanner **Constraint Streams**, which is now complete — `AspConstraintProvider` is
+migration to **Constraint Streams**, which is now complete — `AspConstraintProvider` is
 the production scorer and `AspEasyScoreCalculator` is retained as the test oracle. The migration
 outcome and the per-shift-vs-legacy reconciliation are recorded in §6.
 

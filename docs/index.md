@@ -85,10 +85,10 @@ It is a detailed rule based schedule generator.
 
 # Are you a developer?
 
-The application is a **Maven** project: just clone the repository and open the **pom** file in your preferred IDE. Please consider forking the repository on GitHub, contributions are welcome! The application is also an easy example of **Optaplanner** usage with simple code.
+The application is a **Maven** project: just clone the repository and open the **pom** file in your preferred IDE. Please consider forking the repository on GitHub, contributions are welcome! The application is also an easy example of **Timefold Solver** (the maintained fork of OptaPlanner) usage with simple code.
 
 ```
-AutoShiftPlanner uses Optaplanner and it's dependencies. Many thanks to Optaplanner developers.
+AutoShiftPlanner uses Timefold Solver (the maintained fork of OptaPlanner) and its dependencies. Many thanks to the Timefold and OptaPlanner developers.
 Released under: Gnu Public License, version 3
 ```
 

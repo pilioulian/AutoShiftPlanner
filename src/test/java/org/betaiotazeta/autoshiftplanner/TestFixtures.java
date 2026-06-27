@@ -6,7 +6,7 @@ import com.thoughtworks.xstream.security.NoTypePermission;
 import java.io.File;
 import java.util.List;
 import java.util.Random;
-import org.optaplanner.persistence.xstream.impl.domain.solution.XStreamSolutionFileIO;
+import org.betaiotazeta.autoshiftplanner.persistence.XStreamSolutionFileIO;
 
 /**
  * Test-only helpers for the score-migration harness.

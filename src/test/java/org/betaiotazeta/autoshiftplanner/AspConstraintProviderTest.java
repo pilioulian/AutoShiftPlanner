@@ -1,7 +1,7 @@
 package org.betaiotazeta.autoshiftplanner;
 
 import org.junit.jupiter.api.Test;
-import org.optaplanner.test.api.score.stream.ConstraintVerifier;
+import ai.timefold.solver.test.api.score.stream.ConstraintVerifier;
 
 /**
  * Exact per-constraint unit tests for {@link AspConstraintProvider} using OptaPlanner's

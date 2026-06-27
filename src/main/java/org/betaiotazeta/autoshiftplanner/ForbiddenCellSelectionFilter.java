@@ -1,8 +1,8 @@
 package org.betaiotazeta.autoshiftplanner;
 
-import org.optaplanner.core.impl.heuristic.selector.common.decorator.SelectionFilter;
-import org.optaplanner.core.impl.heuristic.selector.move.generic.ChangeMove;
-import org.optaplanner.core.api.score.director.ScoreDirector;
+import ai.timefold.solver.core.impl.heuristic.selector.common.decorator.SelectionFilter;
+import ai.timefold.solver.core.impl.heuristic.selector.move.generic.ChangeMove;
+import ai.timefold.solver.core.api.score.director.ScoreDirector;
 
 /**
  *
