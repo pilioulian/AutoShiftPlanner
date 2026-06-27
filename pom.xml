@@ -62,6 +62,15 @@
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
                 </configuration>
+                    <executions>
+                        <execution>
+                            <id>make-assembly</id>
+                            <phase>package</phase>   <!-- bind to package phase -->
+                            <goals>
+                                <goal>single</goal>  <!-- the goal that actually builds the JAR -->
+                            </goals>
+                        </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
