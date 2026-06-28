@@ -1,7 +1,7 @@
 # Normalize line endings: store text as LF in the repo and check it out as LF
 # everywhere (this repo lives on a WSL /mnt/c mount, where editors otherwise
 # rewrite files as CRLF and produce whole-file "changes"). See CLAUDE.md.
-* text=auto eol=lf
+* text eol=lf
 
 # Binary assets — never apply text/eol conversion.
 *.png  binary
