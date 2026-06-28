@@ -899,7 +899,10 @@ public class AspApp extends javax.swing.JFrame {
                 });
 
                 // Load a problem
-                solution = new SolutionGenerator(aspApp).createSolution();
+                aspApp.updateConfiguratorFromGui();
+                solution = new SolutionGenerator(getBusiness(), getConfigurator(), getTable(), getStaff()).createSolution();
+                aspApp.setSolution(solution);
+                convertTableIntoShifts();
 
                 // Solve the problem
                 Solution solvedSolution = solver.solve(solution);
@@ -1114,9 +1117,12 @@ public class AspApp extends javax.swing.JFrame {
 
     private void saveMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveMenuActionPerformed
         // Save solution:
-        
-        solution = new SolutionGenerator(aspApp).createSolution();
-        
+
+        updateConfiguratorFromGui();
+        solution = new SolutionGenerator(getBusiness(), getConfigurator(), getTable(), getStaff()).createSolution();
+        setSolution(solution);
+        convertTableIntoShifts();
+
         File dataDir = new File("data/solved");
         JFileChooser chooser = new JFileChooser(dataDir);
         FileNameExtensionFilter filter = new FileNameExtensionFilter(
@@ -1557,83 +1563,13 @@ public class AspApp extends javax.swing.JFrame {
 
     // Converts data from cells (in table) into shiftAssignment (in solution)
     public void convertTableIntoShifts() {
-        int nR = table.getNumberOfRows();
-        int nC = table.getnumberOfColumns();
-
-        List<ShiftAssignment> shiftAssignmentList = solution.getShiftAssignmentList();
-        List<ShiftDuration> shiftDurationList = solution.getShiftDurationList();
-
-        for (int i = 0; i < nR; i++) {
-            for (int j = 0; j < nC; j++) {
-                ShiftDuration shiftDuration;
-                boolean status = false;
-                int shiftStart = -1;
-                status = table.getCell(i, j).isWorked();
-                while (status) {
-                    if (shiftStart == -1) {
-                        shiftStart = j;
-                    }
-                    j = j + 1;
-                    if (j < nC) {
-                        status = table.getCell(i, j).isWorked();
-                    } else {
-                        status = false;
-                    }
-                }
-                if (shiftStart == -1) {
-                    // do nothing
-                } else {
-                    // convert into shift
-                    //  idEployee needs to be corrected because indexOfEmployee starts at 0: -1
-                    int idEmployee = table.getCell(i, shiftStart).getIdEmployee() - 1;
-                    //  periods and timeGrains are essentially the same thing
-                    //  idPeriod needs to be corrected because grainIndex starts at 0: -1
-                    int grainIndex = table.getCell(i, shiftStart).getIdPeriod() - 1;
-                    int durationInGrains = (j - shiftStart); // column j means first non worked cell
-
-                    boolean done = false;
-                    int index = 0;
-                    int maxIndex = shiftDurationList.size() - 1;
-                    do {
-                        shiftDuration = shiftDurationList.get(index);
-                        if (durationInGrains == shiftDuration.getDurationInGrains()) {
-                            done = true;
-                            index = 0;
-                        }
-                        index++;
-                        if (maxIndex < index) {
-                            String message = "A shift has a length of: " + durationInGrains + " grains, which is uncompatible with constraints settings.";
-                            JOptionPane.showMessageDialog(aspApp, message, "Warning", JOptionPane.WARNING_MESSAGE);
-                            done = true;
-                            return;
-                        }
-                    } while (!done);
-
-                    done = false;
-                    index = 0;
-                    maxIndex = shiftAssignmentList.size() - 1;
-                    do {
-                        ShiftAssignment shiftAssignment = shiftAssignmentList.get(index);
-                        int indexOfEmployee = solution.getStaffScore().indexOf(shiftAssignment.getShift().getEmployee());
-                        if ((idEmployee == indexOfEmployee)
-                                && ((shiftAssignment.getTimeGrain() == null) || (shiftAssignment.getShiftDuration() == null))) {
-                            // assigning...
-                            shiftAssignment.setTimeGrain(solution.getTimeGrainList().get(grainIndex));
-                            shiftAssignment.setShiftDuration(shiftDuration);
-                            done = true;
-                            index = 0;
-                        }
-                        index++;
-                        if (maxIndex < index) {
-                            String employeeName = solution.getStaffScore().get(idEmployee).getName();
-                            String message = "Cannot assign a shift! " + "Employee: " + employeeName + ", grainIndex: " + grainIndex + ", duration:" + durationInGrains + ". Please, check settings.";
-                            JOptionPane.showMessageDialog(aspApp, message, "Warning", JOptionPane.WARNING_MESSAGE);
-                            done = true;
-                            return;
-                        }
-                    } while (!done);
-                }
-            }
+        // Delegates to the GUI-free core converter; a conversion that is incompatible with the current
+        // constraint settings is surfaced as a warning dialog, leaving any already-converted shifts in
+        // place (same warn-and-continue behavior as before the extraction).
+        try {
+            new TableToShiftConverter().convert(table, solution);
+        } catch (ShiftConversionException ex) {
+            JOptionPane.showMessageDialog(aspApp, ex.getMessage(), "Warning", JOptionPane.WARNING_MESSAGE);
         }
     }
     

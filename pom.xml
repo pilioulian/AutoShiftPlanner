@@ -2,92 +2,75 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.betaiotazeta</groupId>
-    <artifactId>AutoShiftPlanner</artifactId>
+    <artifactId>autoshiftplanner-parent</artifactId>
     <version>0.2.0</version>
-    <packaging>jar</packaging>
-    
+    <packaging>pom</packaging>
+
+    <!-- Multi-module split (v0.3.0): asp-core is the pure, GUI-free backend (domain, constraints,
+         solver config, persistence) that a future Spring Boot backend can build on; asp-desktop is
+         the existing Swing app on top of it. See CLAUDE.md. -->
+    <modules>
+        <module>asp-core</module>
+        <module>asp-desktop</module>
+    </modules>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <timefold.version>2.2.0</timefold.version>
+        <logback.version>1.5.36</logback.version>
+        <junit.version>5.10.2</junit.version>
+    </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>ai.timefold.solver</groupId>
                 <artifactId>timefold-solver-bom</artifactId>
                 <type>pom</type>
-                <version>2.2.0</version>
+                <version>${timefold.version}</version>
                 <scope>import</scope>
+            </dependency>
+            <!-- Internal modules: pin the shared version so child poms stay version-free. -->
+            <dependency>
+                <groupId>org.betaiotazeta</groupId>
+                <artifactId>asp-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <!-- 1.5.x provides the SLF4J 2.x binding that Timefold pulls; 1.2.3 (SLF4J 1.7) is ignored and disables logging. -->
+                <version>${logback.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
-    
-    <dependencies>
-        <dependency>
-            <groupId>ai.timefold.solver</groupId>
-            <artifactId>timefold-solver-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ai.timefold.solver</groupId>
-            <artifactId>timefold-solver-benchmark</artifactId>
-        </dependency>
-        <!-- JSON persistence: JacksonSolutionFileIO + Score (de)serializers. This is the solution
-             file format (see JsonSolutionFileIO); it transitively provides the SolutionFileIO API. -->
-        <dependency>
-            <groupId>ai.timefold.solver</groupId>
-            <artifactId>timefold-solver-jackson</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <!-- 1.5.x provides the SLF4J 2.x binding that Timefold pulls; 1.2.3 (SLF4J 1.7) is ignored and disables logging. -->
-            <version>1.5.36</version>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>5.10.2</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-    
+
     <build>
-        <plugins>
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.1.0</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>org.betaiotazeta.autoshiftplanner.AspApp</mainClass>
-                        </manifest>
-                    </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
-                    <executions>
-                        <execution>
-                            <id>make-assembly</id>
-                            <phase>package</phase>   <!-- bind to package phase -->
-                            <goals>
-                                <goal>single</goal>  <!-- the goal that actually builds the JAR -->
-                            </goals>
-                        </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version>
-            </plugin>
-        </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.11.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.2.5</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.1.0</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
-    
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-    </properties>   
 </project>

@@ -6,14 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AutoShiftPlanner is a Java Swing desktop app that auto-generates employee work schedules using [Timefold Solver](https://timefold.ai/) (the maintained fork of OptaPlanner) as the constraint-solving engine. The user defines a business week (start/end time, employees, weekly hours, constraints), marks time units as forbidden/mandatory in a grid editor, and the solver fills in shifts. There is no server, database, or web component — it's a single-process GUI application.
 
+**Module layout (v0.3.0 split).** The repo is a Maven multi-module project, in preparation for a future Spring Boot backend + Angular frontend:
+
+- **`asp-core/`** — the pure, **GUI-free backend**: the Timefold domain, both scorers, solver/persistence config, `SolutionGenerator`, and `TableToShiftConverter`. **No `javax.swing`/`java.awt`** (a CI-style guard worth preserving). This is the module the future backend will depend on.
+- **`asp-desktop/`** — the Swing app (`AspApp` and friends) on top of `asp-core`; produces the runnable fat jar and hosts the developer-only Benchmark menu.
+
+Both modules use the same package `org.betaiotazeta.autoshiftplanner` (split by module, not by package). When adding a class, decide which module it belongs to: anything that touches Swing/AWT goes in `asp-desktop`; everything else (domain, solver, persistence) goes in `asp-core`.
+
 ## Build & run
 
-- Build (produces a runnable fat jar): `mvn clean package`
-  - Outputs `target/AutoShiftPlanner-<version>-jar-with-dependencies.jar` (main class `org.betaiotazeta.autoshiftplanner.AspApp`).
-- Run the app: `mvn exec:java -Dexec.mainClass=org.betaiotazeta.autoshiftplanner.AspApp`, or `java -jar target/AutoShiftPlanner-*-jar-with-dependencies.jar`. **Requires a display** (Swing GUI) — it cannot run headless.
+- Build (from the repo root, builds both modules and produces a runnable fat jar): `mvn clean package`
+  - Outputs `asp-desktop/target/AutoShiftPlanner-<version>-jar-with-dependencies.jar` (main class `org.betaiotazeta.autoshiftplanner.AspApp`).
+- Run the app: `java -jar asp-desktop/target/AutoShiftPlanner-*-jar-with-dependencies.jar`. **Requires a display** (Swing GUI) — it cannot run headless.
 - Java 21 and Maven are required (`maven.compiler.source/target` = 21). If `mvn` defaults to an older JDK, set `JAVA_HOME` to a JDK 21 (e.g. `/usr/lib/jvm/java-21-openjdk-amd64`) — a wrong target release fails the build.
 - Solver engine: **Timefold Solver 2.2.0** (`timefold-solver-bom`, groupId `ai.timefold.solver`). This is the maintained successor to OptaPlanner 9; the codebase was migrated from OptaPlanner 8.44 (package `org.optaplanner.*` → `ai.timefold.solver.*`), then from Timefold 1.33.0 to 2.x. The 2.0 jump flattened the score package (`...api.score.buildin.hardsoft.HardSoftScore` → `...api.score.HardSoftScore`), made scores **long-based** (`hardScore()`/`softScore()` return `long`), renamed `@PlanningVariable(nullable=true)` → `allowsUnassigned=true`, moved `@PlanningId` to `...api.domain.common`, removed `ConstraintStreamImplType` (BAVET is the only engine), folded the test API into core (`...test.api.score.stream.ConstraintVerifier` → `...core.api.score.stream.test.ConstraintVerifier`; the `timefold-solver-test` artifact is gone), and switched `timefold-solver-jackson` to **Jackson 3** (`tools.jackson.*`).
-- Tests: `mvn test` (JUnit 5 + `ConstraintVerifier` from `timefold-solver-core`). Run one class with `-Dtest=AspConstraintProviderTest`, one method with `-Dtest=Class#method`. No linter or CI. The GUI app itself still requires a display and cannot run headless; non-GUI verification is the test suite below.
+- Tests: all live in `asp-core`. Run with `mvn -pl asp-core test` (JUnit 5 + `ConstraintVerifier` from `timefold-solver-core`). Run one class with `mvn -pl asp-core test -Dtest=AspConstraintProviderTest`, one method with `-Dtest=Class#method`. No linter or CI. The GUI app itself still requires a display and cannot run headless; non-GUI verification is the test suite below. Note: `asp-core` surefire sets `workingDirectory` to the repo root so the tests' `data/...`-relative fixture paths resolve.
 - The test suite is the safety net for the score migration (see `CONSTRAINTS.md`): `AspConstraintProviderTest` (exact per-constraint `ConstraintVerifier` cases), `CharacterizationTest` (golden-master legacy scores), `DifferentialScoreTest` (legacy == Constraint Streams on the `data/*.xml` fixtures; one solve-and-grade test runs the solver for minutes).
 
 ## Key facts that shape the whole codebase
@@ -24,7 +31,7 @@ AutoShiftPlanner is a Java Swing desktop app that auto-generates employee work s
 
 ## Architecture
 
-The Timefold model (annotated classes in `src/main/java/org/betaiotazeta/autoshiftplanner/`):
+The Timefold model (annotated classes in `asp-core/src/main/java/org/betaiotazeta/autoshiftplanner/`):
 
 - `Solution` — `@PlanningSolution`. Holds the planning entities, problem facts, the `Configurator` (constraint settings), `Table`/`Business`/staff, and the `@PlanningScore`. This is the object that gets cloned and solved, and that gets serialized to/from XML.
 - `ShiftAssignment` — `@PlanningEntity`. Has two **unassignable** (`allowsUnassigned=true`) `@PlanningVariable`s: `timeGrain` (when the shift starts) and `shiftDuration` (how long). Shifts are **over-provisioned** and unassignable because the number of shifts an employee needs isn't known upfront. Each carries a `Shift` (which links to an `Employee`). A shift counts only when **both** variables are set; a shift with exactly one set is invalid (see the `partialAssignment` constraint below).
@@ -38,14 +45,15 @@ The Timefold model (annotated classes in `src/main/java/org/betaiotazeta/autoshi
 GUI & orchestration:
 
 - `AspApp` — the `JFrame` main window and entry point (`main`). The Solve button (`solve_jButtonActionPerformed`) runs solving on a `SwingWorker` background thread so the UI stays responsive: it builds a `Solver` from `aspSolverConfig.xml`, generates the working `Solution` via `SolutionGenerator`, registers a `SolverEventListener` to repaint on each new best solution, and calls `solver.solve(...)`. Solving terminates by the config's time limit or `solver.terminateEarly()`.
-- `SolutionGenerator` — builds the `Solution` from the current GUI state, **deep-cloning** the table and staff (important: cloning supports parallel benchmarking and keeps the GUI's live objects separate from the solver's working copy).
+- `SolutionGenerator` — builds the `Solution` from plain inputs (`Business`, `Configurator`, `Table`, staff `List<Employee>`), **deep-cloning** the table and staff (important: cloning supports parallel benchmarking and keeps the GUI's live objects separate from the solver's working copy). It lives in `asp-core` and has **no GUI dependency**: `AspApp` passes its current state in via the constructor (the v0.3.0 split severed the former `SolutionGenerator(AspApp)` callback). It builds the empty value-ranges/entities; populating shifts from the initial table state is `TableToShiftConverter`'s job (called separately by `AspApp` right after).
+- `TableToShiftConverter` (`asp-core`) — pure problem-construction: scans the `Table`'s worked-cell runs and assigns the matching `TimeGrain`/`ShiftDuration` onto free `ShiftAssignment`s. On a run that's incompatible with the current settings it throws `ShiftConversionException` (no UI); `AspApp.convertTableIntoShifts()` is now a thin wrapper that catches it and shows the warning dialog (warn-and-continue, as before). Extracted from `AspApp` so the future backend can reuse it.
 - `TablePanel` / `TableGraphic` — the grid editor where cells are painted forbidden/mandatory/attributed (click, drag, or mouse-wheel). Each employee gets a unique color.
 - `*.form` files are NetBeans GUI-designer descriptors paired with `AspApp.java` / `TablePanel.java`. The matching `// GEN-FIRST`/`// GEN-LAST` regions in the `.java` are **machine-generated** — edit the layout via the form, or be careful editing generated regions by hand.
 
 Solver configuration lives in XML, not code:
 
-- `src/main/resources/.../solver/aspSolverConfig.xml` — the production config: `constraintProviderClass` = `AspConstraintProvider` (no `constraintStreamImplType` — it was removed in 2.0; BAVET is the only engine), `<environmentMode>NO_ASSERT</environmentMode>` (the 2.0 replacement for the removed `REPRODUCIBLE`), plus the construction-heuristic + local-search phases, move selectors, the `ForbiddenCellSelectionFilter`, and termination (180s / bestScoreLimit `0hard/0soft`). The move selectors are score-director-agnostic and were kept verbatim from the legacy config. `aspEasyScoreSolverConfig.xml` is the preserved legacy easy-score config (rollback / reference).
-- `src/main/resources/.../benchmark/aspBenchmarkConfig.xml` and the `.ftl` template — Timefold benchmark setup, reachable from the app's **Benchmark** menu. Benchmarking is a developer-only feature. It loads problems via `<solutionFileIOClass>` (the in-project `JsonSolutionFileIO`).
+- `asp-core/src/main/resources/.../solver/aspSolverConfig.xml` — the production config: `constraintProviderClass` = `AspConstraintProvider` (no `constraintStreamImplType` — it was removed in 2.0; BAVET is the only engine), `<environmentMode>NO_ASSERT</environmentMode>` (the 2.0 replacement for the removed `REPRODUCIBLE`), plus the construction-heuristic + local-search phases, move selectors, the `ForbiddenCellSelectionFilter`, and termination (180s / bestScoreLimit `0hard/0soft`). The move selectors are score-director-agnostic and were kept verbatim from the legacy config. `aspEasyScoreSolverConfig.xml` is the preserved legacy easy-score config (rollback / reference).
+- `asp-desktop/src/main/resources/.../benchmark/aspBenchmarkConfig.xml` and the `.ftl` template — Timefold benchmark setup, reachable from the app's **Benchmark** menu. Benchmarking is a developer-only feature. It loads problems via `<solutionFileIOClass>` (the in-project `JsonSolutionFileIO`).
 
 ## Persistence
 
