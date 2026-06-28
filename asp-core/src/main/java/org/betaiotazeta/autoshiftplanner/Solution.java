@@ -9,7 +9,6 @@ import ai.timefold.solver.core.api.domain.solution.ProblemFactCollectionProperty
 import ai.timefold.solver.core.api.domain.solution.ProblemFactProperty;
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider;
 import ai.timefold.solver.core.api.score.HardSoftScore;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 /**
@@ -179,15 +178,7 @@ public class Solution {
     public void setShiftAssignmentList(List<ShiftAssignment> shiftAssignmentList) {
         this.shiftAssignmentList = shiftAssignmentList;
     }
-    
-    public AspApp getAspApp() {
-        return aspApp;
-    }
 
-    public void setAspApp(AspApp aspApp) {
-        this.aspApp = aspApp;
-    }
-    
     private HardSoftScore score;
     private ArrayList<Employee> staffScore;
     private Table tableScore;
@@ -199,6 +190,4 @@ public class Solution {
     private List<ShiftDuration> shiftDurationList;
     private List<Shift> shiftList;
     private List<ShiftAssignment> shiftAssignmentList;
-    @JsonIgnore
-    private AspApp aspApp;
 }

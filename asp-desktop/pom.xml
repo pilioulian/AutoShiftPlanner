@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.betaiotazeta</groupId>
+        <artifactId>autoshiftplanner-parent</artifactId>
+        <version>0.2.0</version>
+    </parent>
+
+    <artifactId>asp-desktop</artifactId>
+    <packaging>jar</packaging>
+
+    <!-- The Swing desktop app (entry point AspApp) on top of asp-core. Produces the runnable fat jar. -->
+    <dependencies>
+        <dependency>
+            <groupId>org.betaiotazeta</groupId>
+            <artifactId>asp-core</artifactId>
+        </dependency>
+        <!-- Developer-only Benchmark menu (PlannerBenchmarkFactory). -->
+        <dependency>
+            <groupId>ai.timefold.solver</groupId>
+            <artifactId>timefold-solver-benchmark</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- Preserve the historical runnable-jar name: AutoShiftPlanner-<version>-jar-with-dependencies.jar -->
+        <finalName>AutoShiftPlanner-${project.version}</finalName>
+        <plugins>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>org.betaiotazeta.autoshiftplanner.AspApp</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>   <!-- bind to package phase -->
+                        <goals>
+                            <goal>single</goal>  <!-- the goal that actually builds the JAR -->
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

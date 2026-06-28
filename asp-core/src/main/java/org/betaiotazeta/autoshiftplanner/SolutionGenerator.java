@@ -11,25 +11,23 @@ import java.util.Map;
  */
 public class SolutionGenerator {
 
-    public SolutionGenerator(AspApp aspApp) {
-        this.aspApp = aspApp;
+    public SolutionGenerator(Business business, Configurator configurator, Table table,
+            ArrayList<Employee> staff) {
+        this.business = business;
+        this.configurator = configurator;
+        this.table = table;
+        this.staff = staff;
     }
 
     public Solution createSolution() {
 
-        aspApp.updateConfiguratorFromGui();
-
         // A solution object is created
         Solution solution = new Solution();
-        solution.setBusiness(aspApp.getBusiness());
-        solution.setConfigurator(aspApp.getConfigurator());
-        solution.setAspApp(aspApp);
-        aspApp.setSolution(solution);
+        solution.setBusiness(business);
+        solution.setConfigurator(configurator);
 
         // Cloning table and staff for parallel benchmarking
         // cell cloning
-        Table table = aspApp.getTable();
-        Business business = aspApp.getBusiness();
         int nR = table.getNumberOfRows();
         int nC = table.getnumberOfColumns();
 
@@ -46,7 +44,6 @@ public class SolutionGenerator {
         solution.setTableScore(tableScore);
 
         // employees cloning
-        ArrayList<Employee> staff = aspApp.getStaff();
         ArrayList<Employee> staffScore = new ArrayList<Employee>(staff.size());
         for (Employee employee : staff) {
             Employee employeeScore = employee.clone();
@@ -79,8 +76,8 @@ public class SolutionGenerator {
         for (Map.Entry<Short, Byte> usageEntry : periodUsageMap.entrySet()) {
             // Short idPeriod = usageEntry.getKey();
             Byte value = usageEntry.getValue();
-            if (value == aspApp.getStaff().size()) {
-                bonus = bonus + aspApp.getConfigurator().getEmployeesPerPeriod();
+            if (value == staff.size()) {
+                bonus = bonus + configurator.getEmployeesPerPeriod();
             }
         }
         solution.setBonus(bonus);
@@ -88,7 +85,6 @@ public class SolutionGenerator {
         createTimeGrainList(solution);
         createShiftDurationList(solution);
         createShiftAssignmentList(solution);
-        aspApp.convertTableIntoShifts();
 
         return solution;
     }
@@ -190,5 +186,8 @@ public class SolutionGenerator {
         solution.setShiftAssignmentList(shiftAssignmentList);
     }
 
-    private AspApp aspApp;
+    private final Business business;
+    private final Configurator configurator;
+    private final Table table;
+    private final ArrayList<Employee> staff;
 }
