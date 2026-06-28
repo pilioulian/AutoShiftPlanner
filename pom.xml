@@ -12,6 +12,7 @@
     <modules>
         <module>asp-core</module>
         <module>asp-desktop</module>
+        <module>asp-backend</module>
     </modules>
 
     <properties>
@@ -21,10 +22,22 @@
         <timefold.version>2.2.0</timefold.version>
         <logback.version>1.5.36</logback.version>
         <junit.version>5.10.2</junit.version>
+        <!-- REST backend (asp-backend). Timefold 2.2 targets Spring Boot 4 / Spring Framework 7. -->
+        <spring-boot.version>4.0.7</spring-boot.version>
+        <springdoc.version>3.0.3</springdoc.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <!-- Imported BEFORE the Timefold BOM so Spring Boot's curated versions win where they
+                 overlap (notably Jackson 3, which timefold-solver-jackson also pulls). -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <type>pom</type>
+                <version>${spring-boot.version}</version>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>ai.timefold.solver</groupId>
                 <artifactId>timefold-solver-bom</artifactId>
@@ -69,6 +82,11 @@
                 <plugin>
                     <artifactId>maven-assembly-plugin</artifactId>
                     <version>3.1.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

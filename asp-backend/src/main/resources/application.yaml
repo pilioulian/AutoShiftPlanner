@@ -1,0 +1,12 @@
+timefold:
+  # Reuse asp-core's production solver config verbatim (construction heuristic + local search,
+  # move selectors, ForbiddenCellSelectionFilter, 180s / 0hard-0soft termination).
+  solver-config-xml: org/betaiotazeta/autoshiftplanner/solver/aspSolverConfig.xml
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    ai.timefold.solver: INFO
